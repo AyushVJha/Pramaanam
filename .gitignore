@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# downloaded corpus + derived artifacts (fetched via `make data-sample` / `make db`)
+/data/
+*.db
+*.sqlite
+
+# secrets
+.env
+
+# LLM usage / cost logs (regenerated per run)
+logs/
+
+# generated benchmark data (may contain large or sensitive intermediates)
+bench/data/*
+!bench/data/.gitkeep
