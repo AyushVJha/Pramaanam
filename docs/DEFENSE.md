@@ -41,3 +41,49 @@ The bucket is already public/anonymous, SPEC.md names the CLI path as the suppor
 and the CLI gives retry/resume for the ~400MB tar for free. The cost is a system dependency
 outside the Python env (`awscli`), which `download.py` checks for explicitly and fails loudly
 on rather than silently falling back to an unauthenticated HTTPS GET with no retry logic.
+
+## M1 — Corpus database
+
+**1. Your paragraph splitter misses the opening paragraphs on 15% of a 20-judgment
+spot-check. Why ship it instead of fixing it?**
+Because the failure mode is well understood and narrow: it only happens when a judgment
+quotes another case's own numbered paragraphs at length, and the quoted numbering happens
+to form a longer monotonic run than the judgment's real (but short) opening sequence. I
+measured the rate (3/20) rather than guessing, wrote a test that locks in and explains the
+exact behavior on a real example (`2023_15_848_865_EN.pdf`, quoting an affidavit's own
+"4.-7." numbering), and documented the downstream consequence for M4 (a cited "para 3"
+could false-negative if paragraph 3 was in the discarded opening section). Engineering a
+perfect fix — e.g. detecting quotation marks/indentation to disambiguate — is future work,
+not something M1's acceptance criteria asked for.
+
+**2. Why key `case_citations`/`paragraphs` on a column literally named `case_id` when
+M0 told you not to trust that name?**
+Because that's the column *name* SPEC.md §3.4's schema sketch uses for the foreign key,
+not the metadata field I was warned about. I kept the name for spec fidelity but populate
+it with `cnr` (the real stable key), and said so explicitly in a code comment and in
+DECISIONS.md — the point of the M0 finding was "don't trust `case_id`'s *contents*", not
+"never use that identifier as a name."
+
+**3. Two cases ended up with zero paragraphs. How did you know that was a real data gap
+and not a bug in your extraction code?**
+I didn't assume — I checked. Both cases' derived PDF filenames weren't present in
+`english.tar`'s member list, and the tar's own `english.index.json` reports
+`file_count: 854` against 856 metadata rows — exactly a 2-row gap. If it had instead been
+a PyMuPDF exception or an empty-but-present PDF, the `_case_paragraphs` exception handler
+would have logged a warning with a traceback, which it didn't for these two.
+
+**4. Why does `build_db.py` drop and rebuild every table from scratch instead of
+upserting?**
+"Idempotent" here just needs re-running `make db-sample`/`make db` to produce the same
+result, not fast incremental updates. At this corpus's scale (thousands of cases, not
+millions), a full rebuild is cheap enough and trivially correct — no stale-row or
+partial-update bugs to reason about. It would need to change if the full 2010-2025 build
+became too slow to iterate on.
+
+**5. Why SQLite with FTS5 instead of Postgres, given you know Postgres from your job?**
+One file, no server process, free to host alongside the HF dataset, and FTS5's BM25 +
+trigram tokenizer cover everything the resolver (M3) and support judge's retrieval (M5)
+need without standing up infrastructure for what's currently a single-writer, thousands-
+of-rows corpus. I recorded in DECISIONS.md that this would move to Postgres + `pg_trgm` +
+`pgvector` at real scale — the choice is about matching infra to the actual problem size,
+not avoiding Postgres.

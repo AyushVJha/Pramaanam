@@ -97,7 +97,36 @@ search — otherwise a quote from the headnote could be wrongly confirmed as jud
 margin `A`–`H` letters are page-layout noise for our purposes (not citation-relevant) and
 should be stripped during paragraph splitting.
 
-## 5. Not yet answered (out of M0 scope, flagged for later)
+## 6. M1 — corpus DB build (year=2023, `make db-sample`)
+
+Reproduce with: `uv run python -m pramaan.data.build_db` (after `make data-sample`).
+
+```
+years:                        [2023]
+cases:                        856
+paragraphs:                   17002
+% cases with zero paragraphs: 0.2%
+% cases with neutral citation: 100.0%
+```
+
+**2/856 cases (0.2%) have zero paragraphs** — not an extraction bug: both case's PDF
+filenames (derived from metadata's `path` column) are genuinely absent from
+`english.tar`. The tar's own `english.index.json` reports `file_count: 854`, exactly
+`856 - 2`. This is a real, small gap in the source archive relative to its metadata, not
+something this codebase can fix — it's recorded here rather than silently producing an
+empty-paragraph case with no explanation.
+
+**Spot-check of 20 random judgments (paragraph numbers + first lines) found 3/20 (15%)
+where paragraph numbering doesn't start at 1** — all 3 are judgments that quote another
+case's own numbered paragraphs at length (e.g. one quotes the *De Beers Consolidated
+Mines* tax-residency precedent's paragraph 8). The splitter's "longest monotonic run"
+heuristic (see DECISIONS.md) picks up the quoted material's numbering instead of the real
+judgment's shorter true opening run, dropping the judgment's first few paragraphs. This is
+a measured, documented limitation — not hidden — see
+`tests/test_paragraphs.py::test_quoted_material_with_own_numbering_is_a_known_limitation`
+for a locked-in example.
+
+## 7. Not yet answered (out of M0 scope, flagged for later)
 
 - Only years 2022–2024 were inspected, per the approved M0 plan. Pre-2023 judgments (before
   the Supreme Court's neutral-citation scheme, per Bar & Bench) may rely on SCC/AIR citations

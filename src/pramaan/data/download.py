@@ -1,8 +1,5 @@
 """Download metadata parquet and judgment tars from the public `indian-supreme-court-judgments`
 S3 bucket (CC-BY-4.0, no AWS credentials needed — see SPEC.md §3.1).
-
-M0 scope: metadata for a few years, plus the English tar for one year, so we can inspect the
-data before designing the resolver. `make db` / full-range downloads come in M1.
 """
 
 import logging
@@ -10,14 +7,12 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from pramaan.config import DATA_DIR, SAMPLE_YEARS
+
 logger = logging.getLogger(__name__)
 
 BUCKET = "indian-supreme-court-judgments"
 REGION = "ap-south-1"
-DATA_DIR = Path("data")
-
-METADATA_YEARS = [2022, 2023, 2024]
-TAR_YEAR = 2023
 
 
 def _aws_s3_cp(key: str, dest: Path) -> None:
@@ -42,7 +37,7 @@ def _aws_s3_cp(key: str, dest: Path) -> None:
     )
 
 
-def download_metadata(years: list[int] = METADATA_YEARS) -> list[Path]:
+def download_metadata(years: list[int]) -> list[Path]:
     """Fetch `metadata/parquet/year=YYYY/metadata.parquet` for each year."""
     paths = []
     for year in years:
@@ -52,7 +47,7 @@ def download_metadata(years: list[int] = METADATA_YEARS) -> list[Path]:
     return paths
 
 
-def download_english_tar(year: int = TAR_YEAR) -> tuple[Path, Path]:
+def download_english_tar(year: int) -> tuple[Path, Path]:
     """Fetch the English judgment tar + its index for one year."""
     index_dest = DATA_DIR / "tar" / f"year={year}" / "english" / "english.index.json"
     tar_dest = DATA_DIR / "tar" / f"year={year}" / "english" / "english.tar"
@@ -61,10 +56,23 @@ def download_english_tar(year: int = TAR_YEAR) -> tuple[Path, Path]:
     return index_dest, tar_dest
 
 
+def download_english_tars(years: list[int]) -> list[tuple[Path, Path]]:
+    """Fetch the English judgment tar + index for each year in `years`."""
+    return [download_english_tar(year) for year in years]
+
+
 def main() -> None:
+    """`make data-sample` (default): SAMPLE_YEARS only. `--full`: config.FULL_YEARS —
+    a multi-GB fetch the user triggers deliberately via `make db`, never via `make setup`.
+    """
+    import sys
+
+    from pramaan.config import FULL_YEARS
+
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    download_metadata()
-    download_english_tar()
+    years = FULL_YEARS if "--full" in sys.argv else SAMPLE_YEARS
+    download_metadata(years)
+    download_english_tars(years)
 
 
 if __name__ == "__main__":

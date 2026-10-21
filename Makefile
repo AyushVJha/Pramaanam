@@ -7,10 +7,11 @@ data-sample:
 	uv run python -m pramaan.data.download
 
 db-sample:
-	@echo "db-sample: implemented in M1 (builds SQLite for year=2023 only)"
+	uv run python -m pramaan.data.build_db
 
 db:
-	@echo "db: implemented in M1 (builds SQLite for the configured year range)"
+	uv run python -m pramaan.data.download --full
+	uv run python -m pramaan.data.build_db --full
 
 test:
 	uv run pytest
