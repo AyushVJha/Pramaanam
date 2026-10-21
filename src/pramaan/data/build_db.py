@@ -116,14 +116,16 @@ def _load_tar_members(tar_path: Path) -> set[str] | None:
         return {m.name for m in tar.getmembers() if m.isfile()}
 
 
-def _case_paragraphs(tar_path: Path, pdf_filename: str) -> list[Paragraph]:
+def _case_paragraphs(
+    tar_path: Path, pdf_filename: str, petitioner: str, respondent: str
+) -> list[Paragraph]:
     with tarfile.open(tar_path) as tar:
         fh = tar.extractfile(pdf_filename)
         if fh is None:
             return []
         data = fh.read()
     try:
-        return split_paragraphs(extract_pages(data))
+        return split_paragraphs(extract_pages(data, petitioner, respondent))
     except Exception:
         logger.warning("failed to extract/split %s", pdf_filename, exc_info=True)
         return []
@@ -190,7 +192,11 @@ def build(
                     )
                     n_with_neutral_citation += 1
 
-            paragraphs = _case_paragraphs(tar_path, pdf_filename) if has_pdf else []
+            paragraphs = (
+                _case_paragraphs(tar_path, pdf_filename, row.petitioner, row.respondent)
+                if has_pdf
+                else []
+            )
             if not paragraphs:
                 n_zero_paragraph_cases += 1
             for para in paragraphs:

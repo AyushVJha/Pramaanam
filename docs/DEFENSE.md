@@ -138,3 +138,30 @@ for case names, where there's no reliable token to scan for. A full re-read of 1
 judgments for exhaustive recall would blow well past PROMPTS.md's ~1 hour estimate for
 this task; the token-scan is a deliberate, stated trade-off between thoroughness and the
 time budget — not an attempt to make the number look better than it is.
+
+**6. The user caught a false positive on the very first candidate they looked at, before
+any formal labeling happened. What was it, and what does it say about your process?**
+A judgment's own title repeats as a running header/footer throughout the printed SCR
+volume (print convention), and PyMuPDF's plain-text extraction interleaves that into the
+body text with no structural marker separating it from real content — so the extractor
+mistook the judgment's own header for a citation to a *different* case. The useful signal
+wasn't the bug itself (regex-based extraction on real legal text was always going to have
+edge cases) — it's that a single real example, actually read end-to-end with the user
+before any bulk labeling started, surfaced a systematic root cause in under five minutes
+that could have otherwise consumed a meaningful fraction of the 100 hand-marked labels as
+one-off "incorrect" marks. I fixed the root cause in `pdf_text.py` rather than treating it
+as 15+ individual labeling annoyances, and measured the fix's actual impact (0 remaining
+own-title leaks across 150 re-scanned judgments) instead of assuming it worked.
+
+**7. Why does the footer-stripping fix need a *different*, unbounded regex instead of
+reusing `citations.patterns.CASE_NAME`?**
+Because the two use cases have different risk profiles. `CASE_NAME` is capped at 8 words
+per side specifically to stop it from swallowing a whole preceding sentence when scanning
+arbitrary draft text for *any* case name (SPEC.md's own "high recall, low precision"
+format). The footer-stripper doesn't have that risk the same way — it only deletes a match
+if it *also* fuzzy-matches the case's own known petitioner/respondent names above an 80%
+threshold, so an unbounded match is safe there and necessary: this case's own corporate
+party name is 10 words long ("GODREJ AND BOYCE MANUFACTURING COMPANY LIMITED THROUGH ITS
+CONSTITUTED ATTORNEY"), and the 8-word cap was truncating it, leaving a dangling fragment
+behind. Same literal problem (matching "X v. Y"), different constraints, so a second,
+purpose-built pattern was the right call rather than forcing one regex to serve both.

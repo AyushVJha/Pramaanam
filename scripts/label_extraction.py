@@ -96,10 +96,26 @@ def _prompt(question: str) -> str:
     return input(question).strip().lower()
 
 
+_INTRO = """\
+You're checking whether the PATTERN-MATCHING CODE correctly spotted a citation in the text
+below — NOT whether the cited case is a real court case. Everything you need is on screen:
+the judgment's own text, with the candidate marked >>>like this<<<. No searching needed.
+
+  - "Correct": is that really a citation sitting right there, with the right span/format?
+    (A judgment's own title header getting mistaken for a citation to someone else's case,
+    or a case name getting chopped wrong, are both real failure modes to watch for.)
+  - "Possible missed citation": is there an actual citation-shaped string near the
+    highlighted word that the tool failed to flag at all?
+
+Both are just reading comprehension against the text shown — never fact-checking.
+"""
+
+
 def main() -> None:
     con = sqlite3.connect(DB_PATH)
     answered = _load_answered(GOLD_PATH)
     total_marked = len(answered)
+    print(_INTRO)
     print(f"Resuming with {total_marked} items already marked (if any).\n")
 
     for cnr in SELECTED_CNRS:
@@ -114,7 +130,9 @@ def main() -> None:
                 continue
             print(f"\n[{c.format}] {c.raw!r}  case_name={c.case_name!r}  para_ref={c.para_ref}")
             print(_context(text, c.span[0], c.span[1]))
-            ans = _prompt("Correct citation? [y]es/[n]o/[s]kip/[q]uit: ")
+            ans = _prompt(
+                "Did the tool get this right (right span/format)? [y]es/[n]o/[s]kip/[q]uit: "
+            )
             if ans == "q":
                 print(f"\nStopped. Total marked so far: {total_marked}")
                 return
@@ -138,7 +156,9 @@ def main() -> None:
                 continue
             print("\n--- possible missed citation ---")
             print(_context(text, start, end))
-            ans = _prompt("Is there a real citation here that was missed? [y]es/[n]o/[q]uit: ")
+            ans = _prompt(
+                "Is there a citation-shaped string here the tool missed? [y]es/[n]o/[q]uit: "
+            )
             if ans == "q":
                 print(f"\nStopped. Total marked so far: {total_marked}")
                 return

@@ -140,6 +140,19 @@ per PROMPTS.md the actual gold-label marking (~1 hour, 10 real judgments) must b
 a human, never the AI. This section will be filled in with real precision/recall numbers
 once that's done — not before.
 
+**Found and fixed while walking through the very first real hand-marking example:**
+PyMuPDF's plain-text extraction interleaves two kinds of SCR print furniture into the body
+text with no structural marker — a running page-top header ("SUPREME COURT REPORTS\n[YYYY]
+V S.C.R.") and a running footer that repeats the case's *own* title ("X v. Y"). The footer
+was making `citations/extract.py` mistake a judgment's own header for a citation to a
+*different* case. Fixed in `pdf_text.py` (generic header strip + fuzzy-matched footer strip
+against the case's own known petitioner/respondent — see DECISIONS.md for why a second,
+differently-bounded regex was needed). Re-scanning 150 judgments after the fix found **0
+remaining own-title leaks**, down from a real, previously-uncounted contributor to
+CASE_NAME false positives. `make db-sample`'s paragraph count shifted from 17,002 to
+16,960 as a direct, expected consequence (the stripped footer text occasionally sat inside
+what had been counted as paragraph content).
+
 ## 8. Not yet answered (out of M0 scope, flagged for later)
 
 - Only years 2022–2024 were inspected, per the approved M0 plan. Pre-2023 judgments (before
