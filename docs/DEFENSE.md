@@ -87,3 +87,54 @@ need without standing up infrastructure for what's currently a single-writer, th
 of-rows corpus. I recorded in DECISIONS.md that this would move to Postgres + `pg_trgm` +
 `pgvector` at real scale — the choice is about matching infra to the actual problem size,
 not avoiding Postgres.
+
+## M2 — Citation extraction
+
+**1. M0 found zero SCC/AIR citations in our metadata. How did you get real SCC/AIR test
+strings for M2 without inventing them?**
+I looked in the right place: M0's "zero SCC/AIR" finding was about the `citation` metadata
+field, which only records a judgment's citation of *itself*. The judgment's own *body
+text* cites other precedents in every format — a corpus-wide scan found 3,445 real SCC
+strings, 458 AIR strings, and 163 SCC OnLine strings sitting in paragraph text (e.g. "AIR
+2005 SC 626" inside a sentence quoting *Bhanu Kumar Jain v. Archana Kumar*). All of
+`test_patterns.py`'s positives for those three formats come from that scan, not from
+public-knowledge landmark cases or anything invented.
+
+**2. Your case-name regex initially matched a party name AND ran straight into the next
+citation's digits. What was wrong, and how did you know?**
+Appendix A's suggested character class for the name parts was `[\w.&,'\- ]`, which
+includes digits and commas — so on real text like "Archana Kumar, AIR 2005 SC 626" the
+match didn't stop at the comma, it kept consuming through "AIR 2005 SC 626" too, because
+digits are `\w`. I caught it by actually running extraction against real corpus text
+instead of trusting the pattern because it came from the spec — the fix excludes digits
+and commas from that character class.
+
+**3. The case-name format still has known false positives. What are they, and why ship
+it anyway?**
+Running the extractor across 15 real paragraphs surfaced two recurring patterns: (a) a
+judgment's own case-name header getting matched as if it cited a *different* case, and
+(b) a short run of capitalized words right before "v." occasionally passing the
+capitalization-ratio filter even when it's actually a sentence fragment (e.g. "...General
+sought to refer to Rameshwar & Ors. v. State of Haryana"). Both are measured, named
+limitations, not swept under the rug — and this exact format is the one SPEC.md itself
+flags as needing an LLM fallback for real precision, which isn't built until M5+. Shipping
+a heuristic-only version now and measuring its actual precision via hand-marking (rather
+than either blocking on M5 or guessing at a number) is the honest middle path.
+
+**4. Why didn't you just have the AI generate the extraction gold labels — wouldn't that
+be faster?**
+Because PROMPTS.md is explicit that this is the one thing I must never do: "This is your
+gold data — never let the AI label it for you." If I labeled my own extractor's output,
+any error pattern my code is blind to would never get caught — the whole point of a human
+in the loop is to catch exactly the mistakes the system that produced the candidates can't
+see in itself. I built the CLI, picked a representative (not cherry-picked) sample of 10
+judgments by candidate count, and the actual correct/incorrect judgment is entirely yours.
+
+**5. Your "recall" measurement only catches misses containing "SCC"/"AIR"/"INSC"/"SCR" —
+isn't that going to overstate recall?**
+Yes, and I say so directly rather than letting the number imply more than it measures:
+it's a lower bound on recall for the 5 structured formats, and explicitly "not measured"
+for case names, where there's no reliable token to scan for. A full re-read of 10
+judgments for exhaustive recall would blow well past PROMPTS.md's ~1 hour estimate for
+this task; the token-scan is a deliberate, stated trade-off between thoroughness and the
+time budget — not an attempt to make the number look better than it is.

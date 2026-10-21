@@ -126,7 +126,21 @@ a measured, documented limitation — not hidden — see
 `tests/test_paragraphs.py::test_quoted_material_with_own_numbering_is_a_known_limitation`
 for a locked-in example.
 
-## 7. Not yet answered (out of M0 scope, flagged for later)
+## 7. M2 — citation extraction
+
+`citations/patterns.py`/`extract.py`/`normalise.py` are built and unit-tested (44 tests,
+`tests/test_patterns.py`) against real SCC/AIR/SCC-OnLine/SCR/neutral citation strings
+pulled directly from judgment *body text* (not the `citation` metadata field, which M0
+found has zero SCC/AIR — but judgments cite other cases in every format throughout their
+own text; see DECISIONS.md).
+
+**Precision/recall per format: not measured yet.** `scripts/label_extraction.py` (the
+hand-marking CLI) and `scripts/eval_extraction.py` (the report) are built and ready, but
+per PROMPTS.md the actual gold-label marking (~1 hour, 10 real judgments) must be done by
+a human, never the AI. This section will be filled in with real precision/recall numbers
+once that's done — not before.
+
+## 8. Not yet answered (out of M0 scope, flagged for later)
 
 - Only years 2022–2024 were inspected, per the approved M0 plan. Pre-2023 judgments (before
   the Supreme Court's neutral-citation scheme, per Bar & Bench) may rely on SCC/AIR citations

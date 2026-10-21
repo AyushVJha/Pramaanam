@@ -12,7 +12,6 @@ Design notes from docs/DATA_NOTES.md / DECISIONS.md:
 """
 
 import logging
-import re
 import sqlite3
 import tarfile
 from pathlib import Path
@@ -20,14 +19,12 @@ from pathlib import Path
 import pandas as pd
 from pydantic import BaseModel
 
+from pramaan.citations.normalise import parse_neutral, parse_scr
 from pramaan.config import DATA_DIR, DB_PATH, SAMPLE_YEARS
 from pramaan.data.paragraphs import Paragraph, split_paragraphs
 from pramaan.data.pdf_text import extract_pages
 
 logger = logging.getLogger(__name__)
-
-_SCR_CITATION = re.compile(r"^\[(\d{4})\]\s*(\d{1,2})\s*S\.C\.R\.\s*(\d{1,4})$")
-_NEUTRAL_CITATION = re.compile(r"^(\d{4})\s+INSC\s+(\d{1,5})$")
 
 
 class CaseCitation(BaseModel):
@@ -48,25 +45,17 @@ class BuildSummary(BaseModel):
 
 
 def parse_scr_citation(case_id: str, raw: str) -> CaseCitation | None:
-    m = _SCR_CITATION.match(raw.strip())
-    if not m:
+    parsed = parse_scr(raw)
+    if not parsed:
         return None
-    year, volume, page = m.groups()
-    return CaseCitation(
-        case_id=case_id, reporter="SCR", year=int(year), volume=int(volume),
-        page=int(page), raw=raw,
-    )
+    return CaseCitation(case_id=case_id, raw=raw, **parsed.model_dump())
 
 
 def parse_neutral_citation(case_id: str, raw: str) -> CaseCitation | None:
-    m = _NEUTRAL_CITATION.match(raw.strip())
-    if not m:
+    parsed = parse_neutral(raw)
+    if not parsed:
         return None
-    year, number = m.groups()
-    return CaseCitation(
-        case_id=case_id, reporter="INSC", year=int(year), volume=None,
-        page=int(number), raw=raw,
-    )
+    return CaseCitation(case_id=case_id, raw=raw, **parsed.model_dump())
 
 
 SCHEMA = """
