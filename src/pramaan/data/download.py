@@ -32,7 +32,8 @@ def _aws_s3_cp(key: str, dest: Path) -> None:
     # connection never leaves a half-written file at `dest` (which the skip check above
     # would wrongly treat as done).
     run_with_retry(
-        ["aws", "s3", "cp", url, str(dest), "--no-sign-request", "--region", REGION],
+        ["aws", "s3", "cp", url, str(dest), "--no-sign-request", "--region", REGION,
+         "--no-progress"],
         f"download {key}",
     )
 
