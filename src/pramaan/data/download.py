@@ -4,10 +4,10 @@ S3 bucket (CC-BY-4.0, no AWS credentials needed — see SPEC.md §3.1).
 
 import logging
 import shutil
-import subprocess
 from pathlib import Path
 
 from pramaan.config import DATA_DIR, SAMPLE_YEARS
+from pramaan.data.retry import run_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +28,12 @@ def _aws_s3_cp(key: str, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     url = f"s3://{BUCKET}/{key}"
     logger.info("downloading %s -> %s", url, dest)
-    subprocess.run(
-        [
-            "aws", "s3", "cp", url, str(dest),
-            "--no-sign-request", "--region", REGION,
-        ],
-        check=True,
+    # `aws s3 cp` writes to a temporary name and renames on completion, so a dropped
+    # connection never leaves a half-written file at `dest` (which the skip check above
+    # would wrongly treat as done).
+    run_with_retry(
+        ["aws", "s3", "cp", url, str(dest), "--no-sign-request", "--region", REGION],
+        f"download {key}",
     )
 
 
