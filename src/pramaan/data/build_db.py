@@ -22,7 +22,8 @@ from pydantic import BaseModel
 from pramaan.citations.normalise import parse_neutral, parse_scr
 from pramaan.config import DATA_DIR, DB_PATH, SAMPLE_YEARS
 from pramaan.data.paragraphs import Paragraph, split_paragraphs
-from pramaan.data.pdf_text import extract_pages
+from pramaan.data.pdf_text import PageText, clean_pages, extract_pages
+from pramaan.data.text_layer import load_raw_pages
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,17 @@ def _case_paragraphs(
         return []
 
 
+def _paragraphs_from_raw(
+    raw_pages: list[PageText], pdf_filename: str, petitioner: str, respondent: str
+) -> list[Paragraph]:
+    """Same result as `_case_paragraphs`, but from the text layer instead of the PDF."""
+    try:
+        return split_paragraphs(clean_pages(raw_pages, petitioner, respondent))
+    except Exception:
+        logger.warning("failed to clean/split %s", pdf_filename, exc_info=True)
+        return []
+
+
 def build(
     db_path: Path = DB_PATH, years: list[int] = SAMPLE_YEARS, data_dir: Path = DATA_DIR
 ) -> BuildSummary:
@@ -150,17 +162,22 @@ def build(
             continue
         df = pd.read_parquet(metadata_path)
 
+        # Prefer the permanent text layer (fast, no PDFs needed). Fall back to reading the tar.
+        raw_by_path = load_raw_pages(year, data_dir)
         tar_path = data_dir / "tar" / f"year={year}" / "english" / "english.tar"
-        tar_members = _load_tar_members(tar_path)
-        if tar_members is None:
+        tar_members = _load_tar_members(tar_path) if raw_by_path is None else None
+        if raw_by_path is None and tar_members is None:
             logger.warning(
-                "no English tar for year=%s at %s; paragraphs will be empty", year, tar_path
+                "no text layer or English tar for year=%s; paragraphs will be empty", year
             )
 
         for row in df.itertuples():
             cnr = row.cnr
             pdf_filename = _pdf_filename(row.path)
-            has_pdf = tar_members is not None and pdf_filename in tar_members
+            if raw_by_path is not None:
+                has_pdf = row.path in raw_by_path
+            else:
+                has_pdf = tar_members is not None and pdf_filename in tar_members
 
             con.execute(
                 "INSERT INTO cases (cnr, case_id, title, petitioner, respondent, decision_date, "
@@ -192,11 +209,16 @@ def build(
                     )
                     n_with_neutral_citation += 1
 
-            paragraphs = (
-                _case_paragraphs(tar_path, pdf_filename, row.petitioner, row.respondent)
-                if has_pdf
-                else []
-            )
+            if not has_pdf:
+                paragraphs = []
+            elif raw_by_path is not None:
+                paragraphs = _paragraphs_from_raw(
+                    raw_by_path[row.path], pdf_filename, row.petitioner, row.respondent
+                )
+            else:
+                paragraphs = _case_paragraphs(
+                    tar_path, pdf_filename, row.petitioner, row.respondent
+                )
             if not paragraphs:
                 n_zero_paragraph_cases += 1
             for para in paragraphs:

@@ -57,3 +57,25 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** leave it as-is and rely on `label_extraction.py`'s human review to catch every occurrence as a one-off "incorrect" mark.
 - **Why:** walking through the very first real example with the user surfaced a systematic bug, not a one-off: SCR print volumes carry a running page-top header ("SUPREME COURT REPORTS\n[YYYY] V S.C.R.") and a running footer that repeats the case's *own* title ("X v. Y"), and PyMuPDF's plain-text extraction interleaves both into the body text with no structural marker — so `citations/extract.py`'s CASE_NAME pattern was matching a judgment's own header/footer as if it cited a *different* case. The header is generic and stripped unconditionally (like the margin letters M0 found). The footer repeats the case's own name, so it's stripped only when a CASE_NAME-shaped match fuzzy-matches (rapidfuzz `token_set_ratio` >= 80, either party order) the case's *actual* petitioner/respondent from its own metadata — a citation to a genuinely different case (even one sharing a party name, e.g. the same company suing a different defendant in an earlier case) is left untouched.
 - **Trade-off:** needed a second, unbounded-width case-name regex in `pdf_text.py` distinct from `citations/patterns.CASE_NAME` — the 8-word cap that protects `extract()`'s general-purpose matching from swallowing unrelated prose also truncated this footer's genuinely long corporate party name ("GODREJ AND BOYCE MANUFACTURING COMPANY LIMITED THROUGH ITS CONSTITUTED ATTORNEY"). Safe here because the match is gated by the fuzzy check against known names, not relied on for precision by itself. Measured impact: re-scanning 150 judgments after the fix found 0 remaining own-title leaks (previously a real, uncounted contributor to CASE_NAME false positives) — `make db-sample`'s paragraph count shifted from 17,002 to 16,960 as a result, which is expected, not a regression.
+
+## Data storage (before M3)
+
+### Full 1950–2026 corpus, not 2010–2025
+- **Alternative:** keep SPEC's 2010–2025 range (6.3 GiB instead of 21.1 GiB English).
+- **Why:** measured on the 2023 sample, 56% of cited authorities (SCC, AIR, SCR strings with a year) were decided before 2010 and 22% before 1990. A 2010+ corpus would mark most real citations "not found". The cost of the full range is only a one-off 21 GiB download.
+- **Trade-off:** more disk and a longer first build. Measured only on one citing year (2023); re-check when more years are loaded.
+
+### Three layers: raw archive on Drive, raw text layer, SQLite
+- **Alternative:** keep only the SQLite DB, or keep raw tars on the laptop.
+- **Why:** the laptop has too little free disk for 21 GiB, and PDF reading is the slow build step. Raw tars are copied once to Google Drive (verified, with a sha256 manifest), the per-page raw text is stored as zstd Parquet (13 MB for 2023 vs a 382 MB tar), and the DB is rebuilt from the text layer in seconds. The text layer stores raw text, not cleaned text, so cleaning rules can change without touching a PDF.
+- **Trade-off:** one more storage layer to keep consistent. The extractor version is stored in each row so a PyMuPDF upgrade is detectable.
+
+### rclone to Drive, not the Drive for Desktop folder
+- **Alternative:** copy files into the synced Drive folder.
+- **Why:** the desktop client caches uploads locally and could fill the laptop's remaining disk. rclone streams straight to Drive and `rclone check` verifies size and hash remotely.
+- **Trade-off:** depends on an rclone login that can expire (it did once; fix is `rclone config reconnect gdrive:`).
+
+### Resumable by construction, no separate state file
+- **Alternative:** a progress file or database table of finished steps.
+- **Why:** progress is read from the files themselves (raw present, manifest entry, text layer present), and files are written under a temporary name then renamed. A crash, internet drop or shutdown can never leave state that disagrees with disk. Network calls retry with backoff; after 5 failures the job exits non-zero and a service restarts it.
+- **Trade-off:** a file that exists but is corrupt would be trusted. Mitigated for raw files by the hash check at archive time.
