@@ -46,3 +46,13 @@ def test_strips_own_title_footer_when_party_names_given():
 
     assert "CONSTITUTED ATTORNEY v. THE MUNICIPAL CORPORATION OF" in pages_without[1].text
     assert "CONSTITUTED ATTORNEY v. THE MUNICIPAL CORPORATION OF" not in pages_with[1].text
+
+
+def test_clean_pages_of_raw_pages_equals_extract_pages():
+    """Splitting extraction from cleaning must not change the result."""
+    from pramaan.data.pdf_text import clean_pages, extract_raw_pages
+
+    pdf = (FIXTURES / "2023_6_56_84_EN.pdf").read_bytes()
+    expected = extract_pages(pdf, "Some Petitioner", "Some Respondent")
+    got = clean_pages(extract_raw_pages(pdf), "Some Petitioner", "Some Respondent")
+    assert got == expected

@@ -27,3 +27,7 @@ bench-test:
 
 demo:
 	@echo "demo: implemented in M9 (runs the web demo locally)"
+
+# Load .env (if present) so PRAMAAN_* settings reach python.
+-include .env
+export

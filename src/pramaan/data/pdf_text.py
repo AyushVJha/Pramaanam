@@ -73,32 +73,50 @@ def _strip_party_name_footer(text: str, petitioner: str, respondent: str) -> str
     return _FOOTER_CASE_NAME.sub(lambda m: "" if is_own_title(m) else m.group(0), text)
 
 
-def extract_pages(
-    pdf_path_or_bytes: str | bytes,
-    petitioner: str | None = None,
-    respondent: str | None = None,
-) -> list[PageText]:
-    """Extract text per page from a judgment PDF, stripping print-furniture noise.
+def extract_raw_pages(pdf_path_or_bytes: str | bytes) -> list[PageText]:
+    """Extract text per page exactly as PyMuPDF returns it, with no cleaning.
 
-    `petitioner`/`respondent` (the case's own party names, from its metadata) are optional:
-    when given, also strips the running footer that repeats the case's own title — without
-    them, only the format-agnostic margin-letter and page-header stripping happens.
+    This is what the permanent text layer stores (data/text_layer.py). Cleaning is applied
+    afterwards by `clean_pages`, so the cleaning rules can change without re-reading PDFs.
     """
     if isinstance(pdf_path_or_bytes, bytes):
         doc = pymupdf.open(stream=pdf_path_or_bytes, filetype="pdf")
     else:
         doc = pymupdf.open(pdf_path_or_bytes)
     try:
-        pages = []
-        for i, page in enumerate(doc):
-            text = _strip_margin_letters(page.get_text())
-            text = _strip_page_header(text)
-            if petitioner and respondent:
-                text = _strip_party_name_footer(text, petitioner, respondent)
-            pages.append(PageText(page_no=i + 1, text=text))
-        return pages
+        return [PageText(page_no=i + 1, text=page.get_text()) for i, page in enumerate(doc)]
     finally:
         doc.close()
+
+
+def clean_pages(
+    raw_pages: list[PageText],
+    petitioner: str | None = None,
+    respondent: str | None = None,
+) -> list[PageText]:
+    """Strip print-furniture noise from raw pages.
+
+    `petitioner`/`respondent` (the case's own party names, from its metadata) are optional:
+    when given, also strips the running footer that repeats the case's own title — without
+    them, only the format-agnostic margin-letter and page-header stripping happens.
+    """
+    pages = []
+    for raw in raw_pages:
+        text = _strip_margin_letters(raw.text)
+        text = _strip_page_header(text)
+        if petitioner and respondent:
+            text = _strip_party_name_footer(text, petitioner, respondent)
+        pages.append(PageText(page_no=raw.page_no, text=text))
+    return pages
+
+
+def extract_pages(
+    pdf_path_or_bytes: str | bytes,
+    petitioner: str | None = None,
+    respondent: str | None = None,
+) -> list[PageText]:
+    """Extract text per page from a judgment PDF, stripping print-furniture noise."""
+    return clean_pages(extract_raw_pages(pdf_path_or_bytes), petitioner, respondent)
 
 
 def extract_text(
