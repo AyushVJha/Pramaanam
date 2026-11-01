@@ -79,3 +79,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** a progress file or database table of finished steps.
 - **Why:** progress is read from the files themselves (raw present, manifest entry, text layer present), and files are written under a temporary name then renamed. A crash, internet drop or shutdown can never leave state that disagrees with disk. Network calls retry with backoff; after 5 failures the job exits non-zero and a service restarts it.
 - **Trade-off:** a file that exists but is corrupt would be trusted. Mitigated for raw files by the hash check at archive time.
+
+### Duplicate cases across year folders: keep the first copy
+- **Found:** building the full 1950-2026 DB failed with a duplicate case ID. 5,181 cases are listed under two year folders, the decision year and the law-report volume year. The two rows are identical except for author_judge, available_languages and raw_html, none of which the DB uses.
+- **Choice:** `build()` keeps the first copy it sees (years run oldest first, so this is the decision-year folder in 99.8% of cases) and skips the second, and logs how many it skipped.
+- **Alternative:** key the table on (cnr, year) and keep both. Rejected: every query would need to dedupe, and the paragraphs would be stored twice.
+- **Trade-off:** in the 0.2% of cases where the volume year comes first, `cases.year` is the volume year, not the decision year. The decision date is still stored in full.

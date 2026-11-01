@@ -154,6 +154,10 @@ def build(
     n_paragraphs = 0
     n_zero_paragraph_cases = 0
     n_with_neutral_citation = 0
+    # The public dataset lists some cases in two year folders (the decision year and the
+    # law-report volume year). Keep the first copy; later years' copies are skipped.
+    seen_cnrs: set[str] = set()
+    n_duplicates = 0
 
     for year in years:
         metadata_path = data_dir / "metadata" / f"year={year}" / "metadata.parquet"
@@ -173,6 +177,10 @@ def build(
 
         for row in df.itertuples():
             cnr = row.cnr
+            if cnr in seen_cnrs:
+                n_duplicates += 1
+                continue
+            seen_cnrs.add(cnr)
             pdf_filename = _pdf_filename(row.path)
             if raw_by_path is not None:
                 has_pdf = row.path in raw_by_path
@@ -235,6 +243,8 @@ def build(
     )
     con.commit()
     con.close()
+    if n_duplicates:
+        logger.info("skipped %d duplicate cases listed under two years", n_duplicates)
 
     return BuildSummary(
         years=years,

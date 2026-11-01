@@ -160,3 +160,25 @@ what had been counted as paragraph content).
   that genuinely appear in `citation` for older years — this needs re-checking once the year
   range expands in M1, rather than assuming the 2022–2024 pattern holds further back.
 - Row counts per year: 2022 = 1017, 2023 = 856, 2024 = 782.
+
+## 9. Full-corpus coverage (1950-2026), measured 2 Nov 2026
+
+Source: `uv run python scripts/measure_coverage.py` on the full DB (output saved in `logs/coverage_full.txt`).
+
+**Corpus.** 38,397 distinct cases and 478,691 paragraphs. Another 5,181 cases appear in two year folders and are kept once (see DECISIONS.md). 5 cases have no PDF. Cases per decade: 1950s 899, 1960s 3,010, 1970s 3,026, 1980s 2,865, 1990s 6,497, 2000s 9,082, 2010s 7,942, 2020s 5,076.
+
+**Citations found inside judgment bodies, and how many resolve by exact lookup** (the cited case is not the citing case):
+
+| Format | Found | Resolved | Rate |
+| --- | --- | --- | --- |
+| SCR | 32,076 | 22,001 | 68.6% |
+| Neutral (INSC) | 760 | 547 | 72.0% |
+| SCC | 56,734 | not resolvable | n/a |
+| AIR | 14,469 | not resolvable | n/a |
+| SCC OnLine | 1,433 | not resolvable | n/a |
+
+SCC, AIR and SCC OnLine numbers are not in the dataset, so they cannot be looked up directly. Of 27,601 paragraphs that cite SCC or AIR, only 2,809 also contain a resolvable SCR or INSC citation in the same paragraph. That is about 10%, so a same-paragraph crosswalk is not enough. Most SCC/AIR citations will need the fuzzy party-name plus year path.
+
+**SCR resolution by cited decade.** Cited 1960s to 1980s: 88 to 90%. Cited 1990s to 2020s: 60 to 67%. Cited 1950s: 17.7% (1,352 of 7,634). Citations to cases before 1950 never resolve (0 of 39). The 1950s corpus has only 899 cases, far fewer than the later decades. I have not checked why, so I do not know if the dataset is incomplete for that decade or something else is going on. Cited neutral 2020s: 56% (269 of 480), cause also not checked.
+
+**Not measured:** whether the matched citation strings are all real citations, and whether each resolved match points to the right case. Both need hand-labelled data.
