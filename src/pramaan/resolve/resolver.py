@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from pramaan.citations.extract import Citation
 from pramaan.citations.normalise import ParsedCitation
-from pramaan.resolve.names import find_name_candidates
+from pramaan.resolve.names import DECISION_YEAR_SQL, find_name_candidates
 
 
 class Candidate(BaseModel):
@@ -44,7 +44,8 @@ def lookup_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> list[Candid
     if parsed.reporter not in _EXACT_METHOD:
         return []
     sql = (
-        "SELECT c.cnr, c.title, c.year FROM case_citations x JOIN cases c ON c.cnr = x.case_id "
+        f"SELECT c.cnr, c.title, {DECISION_YEAR_SQL} FROM case_citations x "
+        "JOIN cases c ON c.cnr = x.case_id "
         "WHERE x.reporter = ? AND x.year = ? AND x.page = ?"
     )
     args: list = [parsed.reporter, parsed.year, parsed.page]
@@ -71,12 +72,15 @@ def resolve_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> Resolution
 
 
 def resolve_fuzzy(
-    con: sqlite3.Connection, case_name: str | None, year: int | None, threshold: float
+    con: sqlite3.Connection, case_name: str | None, year: int | None, threshold: float,
+    exclude_case: str | None = None,
 ) -> Resolution:
     """Match on party names, limited to decisions near `year` when a year is known."""
     if not case_name:
         return Resolution(case_id=None, method="none", confidence=0.0)
-    found = find_name_candidates(con, case_name, year, limit=MAX_ALTERNATIVES)
+    found = find_name_candidates(
+        con, case_name, year, limit=MAX_ALTERNATIVES, exclude_case=exclude_case
+    )
     alternatives = [
         Candidate(case_id=c.case_id, title=c.title, year=c.year, score=c.score) for c in found
     ]
@@ -85,23 +89,34 @@ def resolve_fuzzy(
             case_id=None, method="none", confidence=found[0].score if found else 0.0,
             alternatives=alternatives,
         )
-    if len(found) > 1 and found[1].score >= found[0].score - TIE_MARGIN:
+    # Cases within TIE_MARGIN of the best score are near-ties. The report year is usually the
+    # decision year (84% of SCR citations, DATA_NOTES.md), so among near-ties prefer the one
+    # decided closest to the cited year. Ambiguous only if that still does not separate them.
+    top = [c for c in found if c.score >= found[0].score - TIE_MARGIN]
+
+    def lag(c: Candidate) -> int:
+        return year - c.year if year is not None else 0
+
+    best_lag = min(lag(c) for c in top)
+    closest = [c for c in top if lag(c) == best_lag]
+    if len(closest) > 1:
         return Resolution(
             case_id=None, method="ambiguous", confidence=found[0].score, alternatives=alternatives
         )
+    winner = closest[0]
     return Resolution(
-        case_id=found[0].case_id, method="fuzzy", confidence=found[0].score,
-        alternatives=alternatives,
+        case_id=winner.case_id, method="fuzzy", confidence=winner.score, alternatives=alternatives
     )
 
 
 def resolve(
-    con: sqlite3.Connection, citation: Citation, threshold: float = DEFAULT_THRESHOLD
+    con: sqlite3.Connection, citation: Citation, threshold: float = DEFAULT_THRESHOLD,
+    exclude_case: str | None = None,
 ) -> Resolution:
-    """Exact neutral -> exact reporter -> fuzzy names + year."""
+    """Exact neutral -> exact reporter -> fuzzy names + year. `exclude_case` is for benchmarks."""
     year = citation.parsed.year if citation.parsed else None
     if citation.parsed is not None:
         exact = resolve_exact(con, citation.parsed)
         if exact is not None:
             return exact
-    return resolve_fuzzy(con, citation.case_name, year, threshold)
+    return resolve_fuzzy(con, citation.case_name, year, threshold, exclude_case)

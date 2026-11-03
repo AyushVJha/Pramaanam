@@ -18,6 +18,9 @@ _SPLIT = re.compile(r"\s+(?:v\.?|vs\.?|versus|-vs-)\s+", re.IGNORECASE)
 _MIN_WORD = 4  # shorter words ("of", "state") match far too many cases
 _WORDS_PER_PARTY = 2
 CANDIDATE_LIMIT = 200
+# The cases.year column is the law-report volume year for many older cases (13% differ from the
+# decision date), so years are always taken from the decision date.
+DECISION_YEAR_SQL = "CAST(SUBSTR(c.decision_date, 7, 4) AS INTEGER)"
 YEARS_BEFORE = 2  # a report year can lag the decision year (measured on SCR, DATA_NOTES.md)
 
 
@@ -30,15 +33,25 @@ class NameCandidate(BaseModel):
 
 def split_parties(case_name: str) -> tuple[str, str] | None:
     """'A v. B' -> ('A', 'B'). None when the name has no 'v.' to split on."""
-    parts = _SPLIT.split(case_name.strip(), maxsplit=1)
+    case_name = " ".join(case_name.split())  # line breaks from the PDF become single spaces
+    parts = _SPLIT.split(case_name, maxsplit=1)
     if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
         return None
     return parts[0].strip(), parts[1].strip()
 
 
+# Corporate suffixes say nothing about WHICH company. A party made only of these (the extractor
+# sometimes cuts "X Pvt. Ltd. v. Y" down to "Ltd. v. Y") cannot support a match.
+_GENERIC_WORDS = {"LIMITED", "PRIVATE", "COMPANY", "PUBLIC"}
+
+
 def _distinctive_words(party: str) -> list[str]:
-    words = {w for w in re.findall(r"[A-Z]+", normalise_party_name(party)) if len(w) >= _MIN_WORD}
-    return sorted(words, key=len, reverse=True)[:_WORDS_PER_PARTY]
+    words = {
+        w for w in re.findall(r"[A-Z]+", normalise_party_name(party))
+        if len(w) >= _MIN_WORD and w not in _GENERIC_WORDS
+    }
+    # Longest first; the word itself breaks ties so the choice is the same on every run.
+    return sorted(words, key=lambda w: (-len(w), w))[:_WORDS_PER_PARTY]
 
 
 def fts_query(petitioner: str, respondent: str) -> str | None:
@@ -54,25 +67,35 @@ def party_similarity(a: str, b: str) -> float:
 
 
 def find_name_candidates(
-    con: sqlite3.Connection, case_name: str, year: int | None, limit: int = 3
+    con: sqlite3.Connection, case_name: str, year: int | None, limit: int = 3,
+    exclude_case: str | None = None,
 ) -> list[NameCandidate]:
-    """Best-matching cases for 'A v. B', best first. A year limits decisions to a window."""
+    """Best-matching cases for 'A v. B', best first. A year limits decisions to a window.
+
+    `exclude_case` hides one case, so the benchmark can ask: if the true case were missing from
+    the corpus, would the resolver wrongly pick a lookalike?
+    """
     parties = split_parties(case_name)
     if parties is None:
         return []
     draft_pet, draft_resp = parties
+    if not _distinctive_words(draft_pet) or not _distinctive_words(draft_resp):
+        return []  # one side is empty or generic, so the name is too weak to match on
     query = fts_query(draft_pet, draft_resp)
     if query is None:
         return []
 
     sql = (
-        "SELECT c.cnr, c.title, c.year, c.petitioner, c.respondent FROM names_fts "
+        f"SELECT c.cnr, c.title, {DECISION_YEAR_SQL}, c.petitioner, c.respondent FROM names_fts "
         "JOIN cases c ON c.rowid = names_fts.rowid WHERE names_fts MATCH ?"
     )
     args: list = [query]
     if year is not None:
-        sql += " AND c.year BETWEEN ? AND ?"
+        sql += f" AND {DECISION_YEAR_SQL} BETWEEN ? AND ?"
         args += [year - YEARS_BEFORE, year]
+    if exclude_case is not None:
+        sql += " AND c.cnr != ?"
+        args.append(exclude_case)
     rows = con.execute(sql + " ORDER BY rank LIMIT ?", [*args, CANDIDATE_LIMIT]).fetchall()
 
     scored = []

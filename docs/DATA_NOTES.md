@@ -193,3 +193,26 @@ PROMPTS.md says the M2 gold data must be hand-marked by Ayush. He labelled 3 of 
 Run `uv run python scripts/eval_extraction.py` for the human rows only. Pass both files to pool them. Pooled results (27 rows, 20 candidates) are a smoke test, not a result to quote: CASE_NAME is 5 candidates and 2 correct, SCC is 11 candidates, SCR 2, AIR 1, NEUTRAL 1. The sample is far smaller than the 100 citations PROMPTS.md asked for.
 
 Judgment calls Claude made that Ayush may overrule: a citation in the judgment's own header counts as correct (it is a real citation string, just a self-citation). A High Court "SCC OnLine Bom" citation counts as not missed, since the patterns cover the Supreme Court only. A case-name span that starts with "In" or "Lord Davey in" counts as incorrect, which matches Ayush's own answer on the first such item.
+
+## 11. M3 resolver results, measured 4 Nov 2026
+
+Source: `logs/m3_results.txt`, produced by `bench/tune_resolve.py` and `bench/eval_resolve.py`. Threshold 0.85, chosen on dev only. The test split was first run once the threshold was fixed. It was re-run afterwards only to confirm the results did not change after a determinism fix (word order was random between runs).
+
+| Split | Items | Correct | Wrong case | Missed | Ambiguous | Hidden-case lookalike match |
+| --- | --- | --- | --- | --- | --- | --- |
+| Dev | 246 | 85.0% | 1.2% | 13.8% | 0% | 8.9% |
+| Test | 667 | 85.0% | 0.7% | 13.8% | 0.4% | 7.2% |
+
+"Hidden-case lookalike match" is leave-one-out: the true case is removed from the corpus, so the right answer is no match, and the figure is how often a different case was returned anyway.
+
+**What this covers.** Only the fuzzy step, on SCC (about 70% of items), AIR (about 29%) and SCC OnLine (about 2%) citations that carry a case name. The exact step is correct by construction wherever the number is in the corpus.
+
+**How often the fuzzy step is needed.** Of 105,472 structured citations found in judgment bodies (section 9), 22,548 (21.4%) resolve by exact lookup. 72,636 (68.9%) are SCC, AIR or SCC OnLine and can only go through the fuzzy step. Another 9.8% are SCR or neutral numbers that do not match any case. So up to 78.6% of citations in real judgments need the fuzzy step.
+
+**Not measured:**
+- Why 13.8% are missed. On dev, I saw name-extraction noise (leading words like "It was in", line breaks, names cut at "Ltd.") and abbreviated names ("LIC", "CWT"). I have not counted them on test and did not tune on it.
+- Accuracy when the draft gives no case name. Such citations cannot be resolved at all.
+- Accuracy on hallucinated or garbled names. The benchmark uses names as real judgments write them.
+- The identity check's threshold (0.7). It is a starting value with no benchmark yet.
+
+**Known benchmark weaknesses.** Truth depends on the parallel SCR or neutral number in the judgment being right. A mistyped number that points to a different real case would give a wrong answer key. Items were capped at 3 per cited case, so famous cases do not dominate. The builder was revised after I read dev errors, and never after looking at test errors, except that I read the 8 unmatched-anchor test items to see whether the label was sound.

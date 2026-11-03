@@ -165,3 +165,22 @@ party name is 10 words long ("GODREJ AND BOYCE MANUFACTURING COMPANY LIMITED THR
 CONSTITUTED ATTORNEY"), and the 8-word cap was truncating it, leaving a dangling fragment
 behind. Same literal problem (matching "X v. Y"), different constraints, so a second,
 purpose-built pattern was the right call rather than forcing one regex to serve both.
+
+---
+
+## M3: Resolver and identity check
+
+**1. Why does the resolver refuse to pick a case sometimes? Isn't a best guess more useful?**
+Because the report would mark a bad citation VERIFIED. A wrong match is worse than a miss: a miss becomes NOT_FOUND_IN_CORPUS, which the user checks by hand, while a wrong match hides the problem. So a number shared by several cases, a tie the year cannot break, and a name that is only "Ltd." all return no match. On the test split 0.7% of citations resolve to a wrong case and 13.8% are missed. I accept that trade on purpose.
+
+**2. How did you get ground truth without hand-labelling 900 citations?**
+Judgments write parallel citations, like "Name, (2001) 2 SCC 386 : [2001] 1 SCR 1". The SCR number identifies the case by exact lookup. I hide it and test whether the resolver finds the same case from the SCC number and the name. The weakness is that the answer key depends on the parallel number being right. I found a mistyped number making a wrong key, so I dropped the "anchor not found" class from scoring and measured false matches by hiding the true case instead.
+
+**3. How did you choose the 0.85 threshold, and how do you know you did not overfit?**
+I swept it on the dev split only. Wrong-case answers stay at 1.2% from 0.70 up, so the threshold mostly trades correct answers against lookalike matches. 0.85 is where the curve bends. Test was run after the threshold was fixed and gave the same 85.0% correct, within a point on every measure. I also revised the benchmark builder after reading dev errors, and I say so in DECISIONS.md. Test was only used to check the benchmark's "anchor not found" labels, not to change the resolver.
+
+**4. Your first results looked worse than the final ones. What changed?**
+Three real bugs, found by reading dev failures. First, the year column is the law-report volume year for 13% of cases, so a case decided in December 1954 was filed under 1955 and a citation saying 1954 missed it. I now use the decision date. Second, my benchmark paired footnote numbers with the wrong case name. Third, the resolver picked words from a set in random order, so results varied between runs. I fixed it and checked three different hash seeds.
+
+**5. Why not use embeddings or an LLM for matching names?**
+Names are short and the failures are mostly structural: abbreviations, "& Ors.", truncated parties, same-party cases in nearby years. A year filter plus character-level matching is cheap, runs in milliseconds, and I can explain every score. An embedding would not separate two cases with the same parties in different years, which is the main remaining error. An LLM would add cost and non-determinism for little gain here. I would reconsider it only to read the paragraph context for same-party twins.

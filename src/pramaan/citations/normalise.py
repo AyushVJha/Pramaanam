@@ -93,6 +93,8 @@ _PARTY_NAME_STRIP = [
     re.compile(r"\bAND\s+ORS\.?\b"),
     re.compile(r"&\s*ANR\.?\b"),
     re.compile(r"\bAND\s+ANR\.?\b"),
+    re.compile(r"(?:&|\bAND)\s*OTHERS?\b"),
+    re.compile(r"(?:&|\bAND)\s*ANOTHER\b"),
     re.compile(r"\bETC\.?\b"),
     re.compile(r"\(D\)"),
     re.compile(r"\bDECEASED\b"),

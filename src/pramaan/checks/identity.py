@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from pramaan.resolve.names import party_similarity, split_parties
+from pramaan.resolve.names import DECISION_YEAR_SQL, party_similarity, split_parties
 
 # Starting value only. Tuned on the dev set and never on test (CLAUDE.md hard rule).
 NAME_MATCH_THRESHOLD = 0.7
@@ -72,7 +72,8 @@ def check_identity(
     threshold: float = NAME_MATCH_THRESHOLD,
 ) -> IdentityResult:
     petitioner, respondent, year = con.execute(
-        "SELECT petitioner, respondent, year FROM cases WHERE cnr = ?", (case_id,)
+        f"SELECT petitioner, respondent, {DECISION_YEAR_SQL} FROM cases c WHERE c.cnr = ?",
+        (case_id,),
     ).fetchone()
     return compare_identity(
         draft_name, draft_year, petitioner or "", respondent or "", year, threshold

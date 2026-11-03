@@ -18,7 +18,8 @@ def con():
     ]
     for cnr, title, year in cases:
         con.execute(
-            "INSERT INTO cases (cnr, title, year) VALUES (?, ?, ?)", (cnr, title, year)
+            "INSERT INTO cases (cnr, title, year, decision_date) VALUES (?, ?, ?, ?)",
+            (cnr, title, year, f"01-01-{year}"),
         )
     citations = [
         ("C1", "SCR", 1960, 1, 107), ("C1", "INSC", 1960, None, 5),
@@ -84,8 +85,9 @@ def names_con():
     ]
     for cnr, pet, resp, year in rows:
         con.execute(
-            "INSERT INTO cases (cnr, title, petitioner, respondent, year) VALUES (?, ?, ?, ?, ?)",
-            (cnr, f"{pet} versus {resp}", pet, resp, year),
+            "INSERT INTO cases (cnr, title, petitioner, respondent, year, decision_date) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (cnr, f"{pet} versus {resp}", pet, resp, year, f"01-01-{year}"),
         )
     con.execute(
         "INSERT INTO names_fts(rowid, petitioner, respondent) "
@@ -141,3 +143,49 @@ def test_resolve_prefers_exact_number_over_name(con):
     )
     r = resolve(con, cit)
     assert (r.case_id, r.method) == ("C1", "neutral")
+
+
+def test_and_others_is_stripped_like_and_ors():
+    from pramaan.citations.normalise import normalise_party_name
+
+    assert normalise_party_name("VIDYA DROLIA AND OTHERS") == "VIDYA DROLIA"
+    assert normalise_party_name("VIDYA DROLIA & ANOTHER") == "VIDYA DROLIA"
+
+
+def test_name_with_only_a_company_suffix_cannot_match(names_con):
+    # The extractor sometimes truncates "X Pvt. Ltd. v. Y" to "Ltd. v. Y".
+    assert find_name_candidates(names_con, "Ltd. v. Union of India", 2001) == []
+    assert find_name_candidates(names_con, "Private Limited v. Union of India", 2001) == []
+
+
+def test_year_window_uses_the_decision_date_not_the_volume_year(names_con):
+    # A 1955-volume case decided in Dec 1954 must be found by a citation that says 1954.
+    names_con.execute(
+        "INSERT INTO cases (cnr, title, petitioner, respondent, year, decision_date) "
+        "VALUES ('N9', 'KIRAN SINGH versus CHAMAN PASWAN', 'KIRAN SINGH', 'CHAMAN PASWAN', "
+        "1955, '20-12-1954')"
+    )
+    names_con.execute(
+        "INSERT INTO names_fts(rowid, petitioner, respondent) "
+        "SELECT rowid, petitioner, respondent FROM cases WHERE cnr = 'N9'"
+    )
+    found = find_name_candidates(names_con, "Kiran Singh v. Chaman Paswan", year=1954)
+    assert found and found[0].case_id == "N9" and found[0].year == 1954
+
+
+def test_near_tie_prefers_the_case_decided_nearest_the_cited_year(names_con):
+    # N4/N5 are twins decided 1995; add a 1994 twin. A citation dated 1995 should pick a 1995 case
+    # only if exactly one is closest, so with two 1995 twins it stays ambiguous.
+    r = resolve_fuzzy(names_con, "Ramesh Chandra v. State of Bihar", 1995, threshold=0.85)
+    assert r.method == "ambiguous"
+    names_con.execute("DELETE FROM cases WHERE cnr = 'N5'")
+    names_con.execute("INSERT INTO names_fts(names_fts) VALUES('rebuild')")
+    r = resolve_fuzzy(names_con, "Ramesh Chandra v. State of Bihar", 1995, threshold=0.85)
+    assert (r.case_id, r.method) == ("N4", "fuzzy")
+
+
+def test_word_choice_is_deterministic():
+    from pramaan.resolve.names import fts_query
+
+    # Four 5-letter words tie on length. The two kept must be the first two alphabetically.
+    assert fts_query("Zebra Yacht Xerox Wagon", "Union") == '"WAGON" OR "XEROX" OR "UNION"'

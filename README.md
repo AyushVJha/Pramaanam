@@ -2,4 +2,4 @@
 
 An open benchmark and verification pipeline for citations to Indian Supreme Court judgments. See [SPEC.md](SPEC.md) for the full specification.
 
-**Status:** M2 (citation extraction) code + tests done — `citations/` extracts all 6 SPEC.md formats; precision/recall numbers are pending your hand-marking via `scripts/label_extraction.py` (see docs/DATA_NOTES.md once run). M3 (resolver) next.
+**Status:** M3 (resolver + identity check) done: on the frozen test split 85.0% of SCC/AIR citations resolve to the right case and 0.7% to a wrong one (`make bench-test`). M2 labels are mostly Claude-labelled, not human gold (docs/DATA_NOTES.md section 10). M4 (quote and paragraph checks) next.

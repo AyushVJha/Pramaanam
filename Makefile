@@ -20,10 +20,12 @@ lint:
 	uv run ruff check .
 
 bench-dev:
-	@echo "bench-dev: implemented in M7 (runs evaluation on the dev split)"
+	uv run python bench/eval_resolve.py --split dev
+	@echo "(M3 resolver only. The full pipeline evaluation arrives in M7.)"
 
 bench-test:
-	@echo "bench-test: implemented in M7 (runs evaluation on the test split)"
+	uv run python bench/eval_resolve.py --split test
+	@echo "(M3 resolver only. Run on test once the threshold is fixed. Full pipeline in M7.)"
 
 demo:
 	@echo "demo: implemented in M9 (runs the web demo locally)"
