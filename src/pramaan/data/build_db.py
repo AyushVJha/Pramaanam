@@ -105,6 +105,16 @@ CREATE VIRTUAL TABLE names_fts USING fts5(
 );
 """
 
+# Created after the bulk inserts, which is faster than maintaining them row by row.
+# The resolver looks citations up by (reporter, year, volume, page), and later checks read all
+# paragraphs of one case.
+INDEXES = """
+CREATE INDEX idx_paragraphs_case ON paragraphs(case_id, para_no);
+CREATE INDEX idx_citations_lookup ON case_citations(reporter, year, volume, page);
+CREATE INDEX idx_citations_case ON case_citations(case_id);
+CREATE INDEX idx_cases_year ON cases(year);
+"""
+
 
 def _pdf_filename(path: str) -> str:
     return f"{path}_EN.pdf"
@@ -241,6 +251,7 @@ def build(
         "INSERT INTO names_fts(rowid, petitioner, respondent) "
         "SELECT rowid, petitioner, respondent FROM cases"
     )
+    con.executescript(INDEXES)
     con.commit()
     con.close()
     if n_duplicates:

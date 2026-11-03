@@ -85,3 +85,8 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Choice:** `build()` keeps the first copy it sees (years run oldest first, so this is the decision-year folder in 99.8% of cases) and skips the second, and logs how many it skipped.
 - **Alternative:** key the table on (cnr, year) and keep both. Rejected: every query would need to dedupe, and the paragraphs would be stored twice.
 - **Trade-off:** in the 0.2% of cases where the volume year comes first, `cases.year` is the volume year, not the decision year. The decision date is still stored in full.
+
+### Indexes on the corpus DB (M3)
+- **Choice:** add four indexes after the bulk insert: paragraphs by (case, paragraph number), case_citations by (reporter, year, volume, page), case_citations by case, and cases by year.
+- **Alternative:** no indexes, since the DB is rebuilt and small. Rejected: the full corpus has 478,691 paragraphs, and a per-case paragraph query without an index scanned the whole table (a sanity query took over two minutes). The resolver does a citation lookup for every citation.
+- **Trade-off:** a larger file and a slightly slower build. The DB is disposable and rebuilt from the text layer, so this costs nothing permanent.
