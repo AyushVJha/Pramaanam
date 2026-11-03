@@ -21,8 +21,8 @@ from typing import Literal
 from pydantic import BaseModel
 from rapidfuzz import fuzz
 
-# Starting value only. Tuned on the dev set and never on test (CLAUDE.md hard rule).
-NEAR_THRESHOLD = 80.0  # word-level agreement, 0-100
+# Tuned on the dev set only and never on test (CLAUDE.md hard rule).
+NEAR_THRESHOLD = 85.0  # word-level agreement, 0-100; chosen on dev (bench/tune_quotes.py)
 MIN_SEGMENT_WORDS = 4  # shorter pieces ("...the Act...") match almost anywhere
 MAX_PARA_HITS = 5
 NEGATIONS = {"not", "no", "never", "neither", "nor", "cannot", "without", "none", "nothing"}

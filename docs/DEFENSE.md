@@ -184,3 +184,22 @@ Three real bugs, found by reading dev failures. First, the year column is the la
 
 **5. Why not use embeddings or an LLM for matching names?**
 Names are short and the failures are mostly structural: abbreviations, "& Ors.", truncated parties, same-party cases in nearby years. A year filter plus character-level matching is cheap, runs in milliseconds, and I can explain every score. An embedding would not separate two cases with the same parties in different years, which is the main remaining error. An LLM would add cost and non-determinism for little gain here. I would reconsider it only to read the paragraph context for same-party twins.
+
+---
+
+## M4: Quote and paragraph checks
+
+**1. Why did you not use `partial_ratio` over every paragraph, as the spec says?**
+I did, first. It ran over ten minutes on one judgment because the last numbered paragraph of some judgments holds 2.7 million characters (it swallows everything after the last numbered paragraph). I replaced it with an index of shared four-word runs. Each run votes for where the quote starts, and only that stretch is scored with rapidfuzz. The result takes 0.2 seconds on the largest case and gives the same statuses on the benchmark.
+
+**2. A near match is not a misquote. How do you tell an OCR slip from a deliberate change?**
+I cannot from the score alone, and I say so. The check lists the exact changed words and flags a changed negation or number, because those are the changes that flip meaning. A changed adjective is a near match with the diff shown. The support judge in M5 reads meaning. On real quotes from old cases, near matches are common and mostly harmless, so M7 must not map near match to MISQUOTE.
+
+**3. Your benchmark scores are close to 100%. Why should I believe that?**
+You should not read it as real-world accuracy. The "real" quotes are copied from the same text the checker reads, so OCR and typing never differ. The scores show the logic works on altered quotes: a swapped word, an added negation, a changed number, a splice. For realism I measured quotes real judgments take from other judgments. Only 3.4% matched word for word, and I explain in the notes why that is not a misquote rate either. Realistic hallucinations are M6.
+
+**4. You found a weakness in the test split. Why did you not fix it?**
+Because I found it by reading test failures, so fixing it would make the test number mean less. Pieces of fewer than four words after a "...." are ignored, so a real first half plus a short junk tail can pass. It hit 1 of 1,166 altered quotes. I documented it in DECISIONS.md and left it for a decision on a fresh split. Rule: tune and fix on dev, then read test once.
+
+**5. Why is the threshold 85 and not 80 or 90?**
+A dev-only sweep. Spliced quotes are the hard case, because half a quote scores around 50 to 60 and the other half is invented. At 80, 2.4% of splices passed as near matches. At 85, 0.8% did. At 90, one-word changes in short quotes started to fall out and become not found. 85 is the lowest value that rejects splices reliably.

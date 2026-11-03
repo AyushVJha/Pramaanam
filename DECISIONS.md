@@ -105,3 +105,16 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Changed after looking at dev errors, before test was ever run:** pairing only across whitespace and colons, parallel numbers within two years of each other, and the case name must sit right before its citations. The first version paired footnote numbers with the wrong name in about a third of the items I inspected.
 - **Unreliable class dropped:** items whose anchor number was not found are kept in the file as `anchor_not_found` but not scored. Reading the 8 on test showed 6 were the same case under a mistyped or garbled number. False matches are measured by leave-one-out instead: hide the true case and count how often a lookalike is returned.
 - **Trade-off:** names are as the judgments write them, not as a language model would garble them, so the benchmark is easier than real hallucinated drafts. The hallucination benchmark comes in M6.
+
+### Quote check: word-run index to locate, word-level score, threshold 85 (M4)
+- **Choice:** reduce both texts to lowercase words, then (1) look for the quote word for word, including across a break between two neighbouring paragraphs; (2) otherwise find the best-aligned stretch with an index of shared four-word runs and score the share of agreeing words with rapidfuzz; (3) otherwise not found. A quote with "...." is checked piece by piece. Near matches list the changed words and flag a changed negation or number.
+- **Alternative:** rapidfuzz `partial_ratio` over every paragraph, as SPEC.md describes. I tried it first. It ran over 10 minutes on one judgment, because the last numbered paragraph can hold 2.7 million characters. The index version takes 0.2 s.
+- **Word level, not character level:** swapping one long word in a 13-word quote scored 87 at character level and fell under the threshold, though it is one changed word. A word-level score treats every word alike.
+- **Why 85:** a dev-only sweep (`bench/tune_quotes.py`). It is the lowest threshold where spliced quotes are rejected 99% of the time. Below it, splices start passing as near matches.
+- **Trade-off:** a score cannot tell an OCR slip from a deliberate change, so a near match is not a verdict. The diff and the negation and number flags carry the signal, and the support judge in M5 decides on meaning.
+- **Known weakness, left unfixed on purpose:** pieces of fewer than four words after a "...." are ignored, so a real first half plus a short junk tail can pass as verbatim. I found it by reading test failures, so fixing it now would contaminate the test split. One of 1,166 altered test quotes hit it. Decide whether to fix it and re-measure on a fresh split.
+
+### Quote benchmark: synthetic, truth by construction (M4)
+- **Choice:** real quotes are sentences lifted from a judgment. Altered quotes are made from them mechanically: one word swapped, a negation added or removed, a number changed, two distant paragraphs spliced, or a sentence from another judgment. Same 30/70 hash split by case.
+- **Alternative:** hand-labelling real misquotes. Not available yet. M6 adds realistic ones.
+- **Trade-off:** it is easy. A "real" quote is copied from the very text the checker reads, so OCR and typing differences never appear. Near-perfect scores here say the logic works, not that real quotes will pass.

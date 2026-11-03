@@ -21,11 +21,13 @@ lint:
 
 bench-dev:
 	uv run python bench/eval_resolve.py --split dev
-	@echo "(M3 resolver only. The full pipeline evaluation arrives in M7.)"
+	uv run python bench/eval_quotes.py --split dev
+	@echo "(M3 resolver and M4 quote checks only. The full pipeline evaluation arrives in M7.)"
 
 bench-test:
 	uv run python bench/eval_resolve.py --split test
-	@echo "(M3 resolver only. Run on test once the threshold is fixed. Full pipeline in M7.)"
+	uv run python bench/eval_quotes.py --split test
+	@echo "(M3 and M4 only. Run on test once thresholds are fixed. Full pipeline in M7.)"
 
 demo:
 	@echo "demo: implemented in M9 (runs the web demo locally)"

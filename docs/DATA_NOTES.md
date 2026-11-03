@@ -216,3 +216,28 @@ Source: `logs/m3_results.txt`, produced by `bench/tune_resolve.py` and `bench/ev
 - The identity check's threshold (0.7). It is a starting value with no benchmark yet.
 
 **Known benchmark weaknesses.** Truth depends on the parallel SCR or neutral number in the judgment being right. A mistyped number that points to a different real case would give a wrong answer key. Items were capped at 3 per cited case, so famous cases do not dominate. The builder was revised after I read dev errors, and never after looking at test errors, except that I read the 8 unmatched-anchor test items to see whether the label was sound.
+
+## 12. M4 quote and paragraph check results, measured 4 Nov 2026
+
+Source: `logs/m4_results.txt` from `bench/tune_quotes.py` and `bench/eval_quotes.py`, and `logs/m4_real_quotes.txt` from `bench/measure_real_quotes.py`. Threshold 85, chosen on dev only. Test was run once with it fixed.
+
+**Synthetic benchmark (truth by construction).** Test split, 1,991 items from 275 judgments:
+
+| Kind | Items | Right status |
+| --- | --- | --- |
+| Real quote | 275 | 100.0% verbatim |
+| One word changed | 274 | 100.0% near match |
+| Negation added or removed | 226 | 99.6% near match, flag raised on 225 |
+| Number changed | 117 | 100.0% near match, flag raised on 117 |
+| Spliced from distant paragraphs | 274 | 98.9% not found |
+| Sentence from another judgment | 275 | 100.0% not found |
+
+Altered quotes reported verbatim: 2 of 1,166. One is a benchmark flaw: the altered text happens to exist elsewhere in the same judgment. The other is the known weakness in DECISIONS.md: short pieces after "...." are ignored. The paragraph check was right on 275 of 275 correct pinpoints, 275 of 275 off-by-one pinpoints and 272 of 275 far-off pinpoints. Dev results are within a point.
+
+**What this does not show.** The benchmark is easy by construction, so near-perfect scores say the logic works, not that real quotes will pass. Real hallucinated quotes come in M6.
+
+**Real quotes between judgments (not a labelled accuracy).** Of 580 quotes ending just before an exactly resolvable SCR or neutral citation, the checker found 3.4% word for word and 15.2% as near matches (85 to 99% of words agree). 76.2% had no similar passage in the cited case. I read examples and cannot turn this into a misquote rate. Two things blur it: the nearest citation is not always the source of a quote, and cited cases from the 1950s to 1980s (87% of the pairs) carry OCR noise, so even an exact quotation rarely matches word for word. Only 19 cited cases were from the 2020s, too few to read anything from them (6 verbatim, 6 near, 7 not found).
+
+**What I take from it.** For old cases, a near match with a few changed words is the normal outcome of an honest quote, so near match must not be reported as a misquote. M7 has to decide how to map statuses: my suggestion is that a near match with no negation or number flag counts as supported, and one with a flag goes to review.
+
+**Not measured:** how often a real quote from a judgment's headnote is wrongly reported as not found (headnotes are dropped when paragraphs are built); the effect of footnote text mixed into body paragraphs; the quote check on text from the 2000s onward at a useful sample size.
