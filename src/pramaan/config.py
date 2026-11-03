@@ -24,6 +24,10 @@ FULL_YEARS = list(range(1950, 2027))
 JUDGE_BACKEND = os.environ.get("PRAMAAN_JUDGE_BACKEND", "ollama")
 JUDGE_MODEL = os.environ.get("PRAMAAN_JUDGE_MODEL", "qwen2.5:7b-instruct")
 OLLAMA_URL = os.environ.get("PRAMAAN_OLLAMA_URL", "http://localhost:11434")
+# Any server with an OpenAI-style /v1/chat/completions (llama.cpp's llama-server, vLLM, ...).
+# Put the URL and key in .env, never in the repo.
+OPENAI_URL = os.environ.get("PRAMAAN_OPENAI_URL", "")
+OPENAI_API_KEY = os.environ.get("PRAMAAN_OPENAI_API_KEY", "")
 LLM_CACHE_DIR = Path(os.environ.get("PRAMAAN_LLM_CACHE_DIR", "data/llm_cache"))
 LLM_USAGE_LOG = Path("logs/llm_usage.jsonl")
 

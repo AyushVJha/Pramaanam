@@ -125,10 +125,53 @@ class OllamaBackend:
         )
 
 
+class OpenAICompatBackend:
+    """Any server speaking the OpenAI chat API (llama.cpp server, vLLM). Standard library only."""
+
+    def __init__(
+        self, url: str | None = None, api_key: str | None = None, timeout: float = 900.0
+    ) -> None:
+        base = (url or config.OPENAI_URL).rstrip("/")
+        if not base:
+            raise RuntimeError("Set PRAMAAN_OPENAI_URL (for example http://127.0.0.1:8080).")
+        self._url = base + "/v1/chat/completions"
+        self._key = api_key if api_key is not None else config.OPENAI_API_KEY
+        self._timeout = timeout
+
+    def create(self, *, model: str, system: str, prompt: str, max_tokens: int) -> RawReply:
+        body = {
+            "model": model,
+            "temperature": 0,
+            "max_tokens": max_tokens,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+        }
+        headers = {"Content-Type": "application/json"}
+        if self._key:
+            headers["Authorization"] = f"Bearer {self._key}"
+        request = urllib.request.Request(self._url, json.dumps(body).encode("utf-8"), headers)
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+                data = json.loads(response.read())
+        except OSError as e:
+            raise RuntimeError(f"Could not reach the model server at {self._url}.") from e
+        usage = data.get("usage", {})
+        return RawReply(
+            text=data["choices"][0]["message"]["content"] or "",
+            input_tokens=usage.get("prompt_tokens", 0),
+            output_tokens=usage.get("completion_tokens", 0),
+        )
+
+
 def make_backend() -> Backend:
     """The backend named in config. Created only when a call is not served from the cache."""
     if config.JUDGE_BACKEND == "anthropic":
         return AnthropicBackend()
+    if config.JUDGE_BACKEND == "openai":
+        return OpenAICompatBackend()
     return OllamaBackend()
 
 

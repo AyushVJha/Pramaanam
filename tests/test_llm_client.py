@@ -89,3 +89,33 @@ def test_ollama_down_gives_a_helpful_error(monkeypatch):
 
 def test_open_models_cost_nothing():
     assert estimate_cost("qwen2.5:7b-instruct", 5000, 500) == 0.0
+
+
+def test_openai_compat_backend_builds_request_and_reads_usage(monkeypatch):
+    import io
+
+    from pramaan.llm.client import OpenAICompatBackend
+
+    seen = {}
+
+    def fake_urlopen(request, timeout):
+        seen["url"] = request.full_url
+        seen["auth"] = request.get_header("Authorization")
+        reply = {"choices": [{"message": {"content": "{}"}}],
+                 "usage": {"prompt_tokens": 7, "completion_tokens": 2}}
+        return io.BytesIO(json.dumps(reply).encode())
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    out = OpenAICompatBackend("http://h:9/", "k").create(
+        model="m", system="s", prompt="p", max_tokens=5
+    )
+    assert (out.text, out.input_tokens, out.output_tokens) == ("{}", 7, 2)
+    assert seen["url"] == "http://h:9/v1/chat/completions" and seen["auth"] == "Bearer k"
+
+
+def test_openai_backend_without_url_explains_itself(monkeypatch):
+    from pramaan.llm.client import OpenAICompatBackend
+
+    monkeypatch.setattr("pramaan.config.OPENAI_URL", "")
+    with pytest.raises(RuntimeError, match="PRAMAAN_OPENAI_URL"):
+        OpenAICompatBackend()
