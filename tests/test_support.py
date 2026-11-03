@@ -36,7 +36,7 @@ def answer(verdict="supported", para=2, quote="Anticipatory bail may be granted"
 
 def run(tmp_path, backend):
     return judge_support(
-        "anticipatory bail can be granted", PARAS, backend=backend,
+        "anticipatory bail can be granted", PARAS, backend=backend, model="claude-haiku-5-5",
         cache_dir=tmp_path / "c", usage_log=tmp_path / "u.jsonl",
     )
 

@@ -54,3 +54,38 @@ def test_every_call_is_logged_including_cache_hits(tmp_path):
     rows = [json.loads(line) for line in (tmp_path / "usage.jsonl").read_text().splitlines()]
     assert [r["cached"] for r in rows] == [False, True]
     assert rows[0]["cost_usd"] > 0 and rows[0]["purpose"] == "test"
+
+
+def test_ollama_backend_sends_chat_request_and_reads_counts(monkeypatch):
+    import io
+
+    from pramaan.llm.client import OllamaBackend
+
+    seen = {}
+
+    def fake_urlopen(request, timeout):
+        seen["url"] = request.full_url
+        seen["body"] = json.loads(request.data)
+        reply = {"message": {"content": '{"a": 1}'}, "prompt_eval_count": 12, "eval_count": 3}
+        return io.BytesIO(json.dumps(reply).encode())
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    out = OllamaBackend("http://x:1").create(model="m", system="s", prompt="p", max_tokens=50)
+    assert (out.text, out.input_tokens, out.output_tokens) == ('{"a": 1}', 12, 3)
+    assert seen["url"] == "http://x:1/api/chat"
+    assert seen["body"]["format"] == "json" and seen["body"]["options"]["temperature"] == 0
+
+
+def test_ollama_down_gives_a_helpful_error(monkeypatch):
+    from pramaan.llm.client import OllamaBackend
+
+    def boom(request, timeout):
+        raise ConnectionRefusedError()
+
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    with pytest.raises(RuntimeError, match="ollama serve"):
+        OllamaBackend().create(model="m", system="s", prompt="p", max_tokens=5)
+
+
+def test_open_models_cost_nothing():
+    assert estimate_cost("qwen2.5:7b-instruct", 5000, 500) == 0.0

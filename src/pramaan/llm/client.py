@@ -12,6 +12,7 @@ package is imported only when a real call is made.
 import json
 import logging
 import time
+import urllib.request
 from pathlib import Path
 from typing import Protocol
 
@@ -47,6 +48,8 @@ class LLMResult(BaseModel):
 
 def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Dollar estimate from config.PRICES_PER_MTOK. Unknown model -> 0.0 with a warning."""
+    if not model.startswith("claude"):
+        return 0.0  # open models run locally: no per-token charge
     prices = config.PRICES_PER_MTOK.get(model)
     if prices is None:
         log.warning("no price known for model %s; cost logged as 0", model)
@@ -83,6 +86,50 @@ class AnthropicBackend:
             input_tokens=response.usage.input_tokens,
             output_tokens=response.usage.output_tokens,
         )
+
+
+class OllamaBackend:
+    """Open models served locally by Ollama (http://localhost:11434). Standard library only."""
+
+    def __init__(self, url: str | None = None, timeout: float = 600.0) -> None:
+        self._url = (url or config.OLLAMA_URL).rstrip("/") + "/api/chat"
+        self._timeout = timeout
+
+    def create(self, *, model: str, system: str, prompt: str, max_tokens: int) -> RawReply:
+        body = {
+            "model": model,
+            "stream": False,
+            "format": "json",  # makes the model emit valid JSON; we still validate it ourselves
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            # temperature 0: the same input gives the same verdict. num_ctx must hold 5 paragraphs.
+            "options": {"temperature": 0, "num_ctx": 8192, "num_predict": max_tokens},
+        }
+        request = urllib.request.Request(
+            self._url, json.dumps(body).encode("utf-8"), {"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+                data = json.loads(response.read())
+        except OSError as e:
+            raise RuntimeError(
+                f"Could not reach Ollama at {self._url}. Start it with `ollama serve` "
+                f"and pull the model with `ollama pull {model}`."
+            ) from e
+        return RawReply(
+            text=data["message"]["content"],
+            input_tokens=data.get("prompt_eval_count", 0),
+            output_tokens=data.get("eval_count", 0),
+        )
+
+
+def make_backend() -> Backend:
+    """The backend named in config. Created only when a call is not served from the cache."""
+    if config.JUDGE_BACKEND == "anthropic":
+        return AnthropicBackend()
+    return OllamaBackend()
 
 
 def _log_usage(path: Path, result: LLMResult, purpose: str) -> None:
@@ -122,7 +169,7 @@ def complete(
             latency_s=time.perf_counter() - start,
         )
     else:
-        backend = backend or AnthropicBackend()
+        backend = backend or make_backend()
         reply = backend.create(model=model, system=system, prompt=prompt, max_tokens=max_tokens)
         cache_put(cache_dir, key, reply.model_dump())
         result = LLMResult(

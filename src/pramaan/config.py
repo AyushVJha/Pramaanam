@@ -19,8 +19,11 @@ SAMPLE_YEARS = [2023]
 FULL_YEARS = list(range(1950, 2027))
 
 # --- LLM settings (M5). All model names live here, never inside the checks. ---
-# Cheapest model first; move up only if it fails on the dev set (CLAUDE.md).
-JUDGE_MODEL = os.environ.get("PRAMAAN_JUDGE_MODEL", "claude-haiku-5-5")
+# No budget for paid APIs, so the default judge is an open model run locally with Ollama.
+# "anthropic" is still supported (set PRAMAAN_JUDGE_BACKEND=anthropic and a claude-* model name).
+JUDGE_BACKEND = os.environ.get("PRAMAAN_JUDGE_BACKEND", "ollama")
+JUDGE_MODEL = os.environ.get("PRAMAAN_JUDGE_MODEL", "qwen2.5:7b-instruct")
+OLLAMA_URL = os.environ.get("PRAMAAN_OLLAMA_URL", "http://localhost:11434")
 LLM_CACHE_DIR = Path(os.environ.get("PRAMAAN_LLM_CACHE_DIR", "data/llm_cache"))
 LLM_USAGE_LOG = Path("logs/llm_usage.jsonl")
 

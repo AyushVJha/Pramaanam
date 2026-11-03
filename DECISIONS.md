@@ -146,3 +146,8 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Choice:** `claude-haiku-5-5` ($0.10 / $0.50 per million tokens), set in `config.py` and overridable by `PRAMAAN_JUDGE_MODEL` or `--model`. Effort `low`. No temperature is sent (newer models reject it).
 - **Rule:** move to `claude-sonnet-5-5` only if Haiku fails on the dev set. Prompts and thresholds are tuned on dev only.
 - **Not measured:** accuracy, cost per citation and latency of any real model. The numbers in the M5 plan were estimates.
+
+### Open model by default: Ollama, no new dependency (M5)
+- **Choice:** there is no budget for paid APIs, so the default judge is an open model served locally by Ollama (`qwen2.5:7b-instruct`, 4-bit, about 4.7 GB). `OllamaBackend` calls `http://localhost:11434/api/chat` with the standard library (`urllib`), so nothing is added to pyproject. Temperature 0 and JSON mode are on. Cost is logged as $0. The Anthropic backend remains one setting away (`PRAMAAN_JUDGE_BACKEND=anthropic`).
+- **Alternative:** a free hosted tier. Rejected: rate limits, terms changes, and the benchmark would not be repeatable.
+- **Trade-off:** a 7B model is weaker than a frontier model at legal reading, and the evidence-quote check is what protects us from its mistakes. Speed on a 16 GB M4 is unmeasured. Which open model is good enough is decided on dev only.

@@ -58,7 +58,7 @@ def run(con, citation, fake=None, *, tmp, **kw):
 
 
 def test_all_good_is_verified(con, tmp_path):
-    r = run(con, cit(), tmp=tmp_path)
+    r = run(con, cit(), tmp=tmp_path, model="claude-haiku-5-5")
     assert r.status == "VERIFIED" and r.cost_usd > 0
 
 
