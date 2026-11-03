@@ -11,7 +11,9 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from pramaan.citations.extract import Citation
 from pramaan.citations.normalise import ParsedCitation
+from pramaan.resolve.names import find_name_candidates
 
 
 class Candidate(BaseModel):
@@ -30,6 +32,10 @@ class Resolution(BaseModel):
 
 
 MAX_ALTERNATIVES = 3
+# Starting value only. It is tuned on the dev set and never on test (CLAUDE.md hard rule).
+DEFAULT_THRESHOLD = 0.85
+# If the runner-up scores within this of the winner, the name alone cannot tell them apart.
+TIE_MARGIN = 0.02
 _EXACT_METHOD = {"INSC": "neutral", "SCR": "reporter"}
 
 
@@ -62,3 +68,40 @@ def resolve_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> Resolution
     return Resolution(
         case_id=None, method="ambiguous", confidence=0.0, alternatives=hits[:MAX_ALTERNATIVES]
     )
+
+
+def resolve_fuzzy(
+    con: sqlite3.Connection, case_name: str | None, year: int | None, threshold: float
+) -> Resolution:
+    """Match on party names, limited to decisions near `year` when a year is known."""
+    if not case_name:
+        return Resolution(case_id=None, method="none", confidence=0.0)
+    found = find_name_candidates(con, case_name, year, limit=MAX_ALTERNATIVES)
+    alternatives = [
+        Candidate(case_id=c.case_id, title=c.title, year=c.year, score=c.score) for c in found
+    ]
+    if not found or found[0].score < threshold:
+        return Resolution(
+            case_id=None, method="none", confidence=found[0].score if found else 0.0,
+            alternatives=alternatives,
+        )
+    if len(found) > 1 and found[1].score >= found[0].score - TIE_MARGIN:
+        return Resolution(
+            case_id=None, method="ambiguous", confidence=found[0].score, alternatives=alternatives
+        )
+    return Resolution(
+        case_id=found[0].case_id, method="fuzzy", confidence=found[0].score,
+        alternatives=alternatives,
+    )
+
+
+def resolve(
+    con: sqlite3.Connection, citation: Citation, threshold: float = DEFAULT_THRESHOLD
+) -> Resolution:
+    """Exact neutral -> exact reporter -> fuzzy names + year."""
+    year = citation.parsed.year if citation.parsed else None
+    if citation.parsed is not None:
+        exact = resolve_exact(con, citation.parsed)
+        if exact is not None:
+            return exact
+    return resolve_fuzzy(con, citation.case_name, year, threshold)
