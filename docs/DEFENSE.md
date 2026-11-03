@@ -203,3 +203,22 @@ Because I found it by reading test failures, so fixing it would make the test nu
 
 **5. Why is the threshold 85 and not 80 or 90?**
 A dev-only sweep. Spliced quotes are the hard case, because half a quote scores around 50 to 60 and the other half is invented. At 80, 2.4% of splices passed as near matches. At 85, 0.8% did. From 85 to 90 nothing changed. At 95, one-word changes in short quotes started to fall out and become not found (83% right). 85 is the lowest value that rejects splices reliably.
+
+---
+
+## M5: Support judge
+
+**1. How do you stop the judge inventing evidence?**
+The prompt demands verbatim quotes, but I do not rely on that. After every answer, code checks that each quote occurs in the paragraph the judge named, using the same lowercase-words comparison as the quote check. An invented quote fails, the model is told exactly what was wrong and gets one retry, and a second failure becomes `cannot_determine`. A supported verdict with no evidence is also rejected. The judge's confidence never reaches the report without proof.
+
+**2. Why did you not use FTS5 for retrieval, as the spec says?**
+I measured it. Searching the full corpus table and then filtering to one case took about 3 seconds a query, because FTS5 scores every match across 38,000 judgments first. After resolution I only need one judgment, a few hundred paragraphs, so I rank those in Python with a short BM25. It is instant and the word weights come from that judgment. The cost is that it matches words, not meaning. Whether the right paragraph lands in the top five is not measured until the benchmark exists.
+
+**3. Why retrieve only from the resolved judgment? Wouldn't a global search find more?**
+It would find more, and that is the problem. If the cited case is wrong, a global search finds another judgment that does support the claim and the tool would say "supported". Scoping to the resolved case means the question asked is exactly "does this case say this", and it removes the cost of a global index. The risk moves to the resolver, which is why identity is checked before support.
+
+**4. What happens when the model is down, malformed or refuses?**
+The function never raises on bad output. Invalid JSON, a wrong shape or an unverifiable quote all end in `cannot_determine`, which the report shows as NEEDS_REVIEW. The SDK itself retries rate limits and server errors. Every call, cached or not, is logged to `logs/llm_usage.jsonl`, so a run's cost can be audited afterwards.
+
+**5. How do you know it works? What did you measure?**
+Honestly: the logic is tested with a fake model (retrieval ranking, JSON parsing, quote verification, retry, every status mapping), 139 tests in all. No real model has been run yet, so I have no accuracy, cost or latency number, and I say so in the README. The first real numbers will come from the 10-item dev run and then from the M6 benchmark. Tuning of prompt and model happens on dev only.

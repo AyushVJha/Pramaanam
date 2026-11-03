@@ -118,3 +118,31 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Choice:** real quotes are sentences lifted from a judgment. Altered quotes are made from them mechanically: one word swapped, a negation added or removed, a number changed, two distant paragraphs spliced, or a sentence from another judgment. Same 30/70 hash split by case.
 - **Alternative:** hand-labelling real misquotes. Not available yet. M6 adds realistic ones.
 - **Trade-off:** it is easy. A "real" quote is copied from the very text the checker reads, so OCR and typing differences never appear. Near-perfect scores here say the logic works, not that real quotes will pass.
+
+## Support judge (M5)
+
+### One LLM function with cache, usage log and a pluggable backend
+- **Choice:** every model call goes through `llm/client.py: complete()`. It checks a disk cache (sha256 of model, system, prompt, params), calls a backend object, and appends tokens, estimated dollars and latency to `logs/llm_usage.jsonl`. The real backend (`AnthropicBackend`) imports the `anthropic` package only when first used. Tests pass a fake backend.
+- **Alternative:** call the SDK directly where needed. Rejected: CLAUDE.md requires caching and cost logging in one place, and tests would need the network.
+- **Trade-off:** cost is an estimate from prices copied into `config.py`, not the bill. The cache means a repeated run is free but also means a changed prompt must change the key (it does, the prompt is part of the hash).
+- **Not done yet:** the `anthropic` dependency is not added (CLAUDE.md says ask first, and the answer was to build offline first). `AnthropicBackend` is therefore written from the SDK documentation and has never run against the real API.
+
+### Retrieval: BM25 over one judgment in Python, not FTS5
+- **Choice:** after resolution, load that judgment's paragraphs and rank them with a 20-line BM25 (stopwords removed, each paragraph cut to 3,000 characters, paragraphs sharing no word with the proposition are dropped).
+- **Alternative:** SPEC.md says BM25 via `paragraphs_fts`. I measured it: 2.8 to 3.0 s per query on the full corpus, because FTS5 scores matches across all 38k judgments before the `case_id` filter. The Python version is instant.
+- **Why it is also better:** word weights come from this judgment alone, so a word that is rare in this case counts, even if common in the corpus.
+- **Trade-off:** pure word overlap. A paragraph that makes the point in different words ranks low. Recall of the right paragraph in the top 5 is not measured yet; it needs the M6 benchmark.
+
+### The judge is never believed without evidence
+- **Choice:** the reply must be JSON that validates (pydantic). supported, partially_supported and contradicted need at least one evidence item, and every quote must occur, after the same lowercase-words normalisation as M4, in the paragraph it names. If not, one retry that tells the model what was wrong. After that: `cannot_determine`, with the failure recorded.
+- **Alternative:** trust a well-formed answer. Rejected: a model can invent a convincing quote, and a verified-looking report with a fake quote is worse than no report.
+- **Trade-off:** a correct verdict with a slightly paraphrased quote is rejected and costs a retry. We accept false `cannot_determine` over false confidence.
+
+### Status mapping (provisional)
+- Rules in `pipeline.py`: unresolved is NOT_FOUND_IN_CORPUS (the text says it does not mean fake); ambiguous number or a wrong year is NEEDS_REVIEW; name mismatch is NAME_MISMATCH; quote not found is MISQUOTE; quote only near is NEEDS_REVIEW; far paragraph is WRONG_PARAGRAPH; judge verdicts map to VERIFIED, UNSUPPORTED, CONTRADICTED, NEEDS_REVIEW. The first failing check decides, so later checks (and their cost) are skipped.
+- **Provisional:** near match to NEEDS_REVIEW and the 0.7 identity threshold are guesses until M7 measures them.
+
+### Judge model: start with the cheapest
+- **Choice:** `claude-haiku-5-5` ($0.10 / $0.50 per million tokens), set in `config.py` and overridable by `PRAMAAN_JUDGE_MODEL` or `--model`. Effort `low`. No temperature is sent (newer models reject it).
+- **Rule:** move to `claude-sonnet-5-5` only if Haiku fails on the dev set. Prompts and thresholds are tuned on dev only.
+- **Not measured:** accuracy, cost per citation and latency of any real model. The numbers in the M5 plan were estimates.
