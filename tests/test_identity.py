@@ -1,0 +1,41 @@
+from pramaan.checks.identity import compare_identity
+
+
+def _c(name, year, pet="OM KUMAR AND ORS.", resp="UNION OF INDIA", decided=2000):
+    return compare_identity(name, year, pet, resp, decided)
+
+
+def test_same_case_matches():
+    assert _c("Om Kumar v. Union of India", 2001).verdict == "match"
+
+
+def test_year_may_lag_the_decision_by_up_to_two_years():
+    assert _c("Om Kumar v. Union of India", 2002).verdict == "match"
+    assert _c("Om Kumar v. Union of India", 2003).verdict == "year_mismatch"
+
+
+def test_year_before_the_decision_is_a_mismatch():
+    assert _c("Om Kumar v. Union of India", 1999).verdict == "year_mismatch"
+
+
+def test_right_number_wrong_name_is_flagged():
+    r = _c("Maneka Gandhi v. Union of India", 2000)
+    assert r.verdict == "name_mismatch"
+    assert "OM KUMAR" in r.explanation
+
+
+def test_name_mismatch_wins_over_year():
+    assert _c("Maneka Gandhi v. Union of India", 1990).verdict == "name_mismatch"
+
+
+def test_no_name_checks_year_only():
+    assert _c(None, 2001).verdict == "match"
+    assert _c(None, 1990).verdict == "year_mismatch"
+
+
+def test_nothing_to_compare():
+    assert _c(None, None).verdict == "cannot_check"
+
+
+def test_name_without_versus_is_not_judged_on_name():
+    assert _c("Om Kumar", 2001).verdict == "match"
