@@ -182,3 +182,14 @@ SCC, AIR and SCC OnLine numbers are not in the dataset, so they cannot be looked
 **SCR resolution by cited decade.** Cited 1960s to 1980s: 88 to 90%. Cited 1990s to 2020s: 60 to 67%. Cited 1950s: 17.7% (1,352 of 7,634). Citations to cases before 1950 never resolve (0 of 39). The 1950s corpus has only 899 cases, far fewer than the later decades. I have not checked why, so I do not know if the dataset is incomplete for that decade or something else is going on. Cited neutral 2020s: 56% (269 of 480), cause also not checked.
 
 **Not measured:** whether the matched citation strings are all real citations, and whether each resolved match points to the right case. Both need hand-labelled data.
+
+## 10. M2 extraction labels: who labelled what
+
+PROMPTS.md says the M2 gold data must be hand-marked by Ayush. He labelled 3 of the 26 remaining items on the labelling page, then asked Claude to do the rest. So the labels are split by file and by a `labeller` field:
+
+- `bench/data/extraction_gold.jsonl` has Ayush's rows, 4 in total. The first came from the terminal tool, the other 3 from the page.
+- `bench/data/extraction_gold_claude.jsonl` has 23 rows labelled by Claude (`claude-sonnet-5-5`). They are not human gold and must be reported as Claude-labelled.
+
+Run `uv run python scripts/eval_extraction.py` for the human rows only. Pass both files to pool them. Pooled results (27 rows, 20 candidates) are a smoke test, not a result to quote: CASE_NAME is 5 candidates and 2 correct, SCC is 11 candidates, SCR 2, AIR 1, NEUTRAL 1. The sample is far smaller than the 100 citations PROMPTS.md asked for.
+
+Judgment calls Claude made that Ayush may overrule: a citation in the judgment's own header counts as correct (it is a real citation string, just a self-citation). A High Court "SCC OnLine Bom" citation counts as not missed, since the patterns cover the Supreme Court only. A case-name span that starts with "In" or "Lord Davey in" counts as incorrect, which matches Ayush's own answer on the first such item.

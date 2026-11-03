@@ -11,10 +11,12 @@ PARTIAL recall estimate — the miss-scan only looks for bare "SCC"/"AIR"/"INSC"
 so it can't find every possible miss, and it can't find a missed CASE_NAME at all. Reported
 as "not measured" for CASE_NAME, not guessed at.
 
-Run: uv run python scripts/eval_extraction.py (after scripts/label_extraction.py)
+Run: uv run python scripts/eval_extraction.py [gold.jsonl ...]  (default: the human file;
+pass the human file and bench/data/extraction_gold_claude.jsonl to pool both)
 """
 
 import json
+import sys
 from pathlib import Path
 
 GOLD_PATH = Path("bench/data/extraction_gold.jsonl")
@@ -28,9 +30,12 @@ def load_gold(path: Path) -> list[dict]:
 
 
 def main() -> None:
-    rows = load_gold(GOLD_PATH)
+    # Optional paths on the command line; each is read and the rows are pooled.
+    paths = [Path(a) for a in sys.argv[1:]] or [GOLD_PATH]
+    rows = [r for p in paths for r in load_gold(p)]
     if not rows:
-        print(f"No gold data at {GOLD_PATH} yet — run scripts/label_extraction.py first.")
+        names = ", ".join(map(str, paths))
+        print(f"No gold data at {names} yet — run scripts/label_extraction.py first.")
         return
 
     candidates = [r for r in rows if r["source"] == "candidate"]
