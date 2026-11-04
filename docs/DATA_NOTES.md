@@ -320,3 +320,12 @@ state coverage per year so a user can see it.
 
 **Not done yet:** classify each PDF as born-digital or scanned; investigate the duplicate and
 inverted ranges.
+
+**Source README check (4 Nov 2026).** The dataset README (github.com/vanga/indian-supreme-court-judgments)
+says the repo holds "the code to download judgments from" `scr.sci.gov.in`, covers "1950 to
+Present", and has "~35K judgments in english". It does NOT say: how the PDFs or their text were
+produced (OCR or not), whether it covers all judgments or only reported ones, known gaps, or an
+update schedule. The domain name (SCR) fits the hypothesis that this is the Supreme Court
+Reports portal, i.e. reported judgments, but that is an inference from a name, not a stated fact.
+Our DB holds 38,397 cases against the README's "~35K" (approximate figure, difference not explained).
+Next: ask the maintainer, or check the portal's own description, before relying on the hypothesis.
