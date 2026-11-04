@@ -241,3 +241,21 @@ Altered quotes reported verbatim: 2 of 1,166. One is a benchmark flaw: the alter
 **What I take from it.** For old cases, a near match with a few changed words is the normal outcome of an honest quote, so near match must not be reported as a misquote. M7 has to decide how to map statuses: my suggestion is that a near match with no negation or number flag counts as supported, and one with a flag goes to review.
 
 **Not measured:** how often a real quote from a judgment's headnote is wrongly reported as not found (headnotes are dropped when paragraphs are built); the effect of footnote text mixed into body paragraphs; the quote check on text from the 2000s onward at a useful sample size.
+
+
+## 13. SCC / AIR alias table (resolver extension)
+
+The dataset has no SCC or AIR numbers (section 9), but judgments print them beside numbers it does have ("(2001) 2 SCC 386 : [2001] 1 SCR 1"). `src/pramaan/data/build_aliases.py` mines these pairs into `citation_aliases`, one row per piece of evidence plus the judgment that printed it.
+
+Rules: the group must hold exactly one SCR or neutral number that resolves to exactly one case; the SCC/AIR number must be within 2 years of it; a judgment citing itself is skipped. SCC OnLine is not mapped.
+
+Measured with `scripts/explore_parallel_citations.py` (log `logs/explore_parallel.txt`), whole corpus:
+- 2,496 clean groups gave 2,506 evidence rows and 1,839 distinct SCC/AIR numbers.
+- Of the 390 numbers seen in two or more judgments, 385 (98.7%) agree on one case. 5 numbers have conflicting targets.
+- Held-out: map built from 70% of citing judgments (hash group), scored on the other 30%. 756 SCC/AIR citations had a known true case. The map answered 201 (26.6%): 199 right, 2 wrong (99.0% precision).
+- Caveat: the held-out truth is the same kind of printed pair as the map, so this shows agreement between independent judgments, not independent proof. The 26.6% is for citations that have a printed parallel number; coverage on real drafts is not measured.
+
+Resolver effect, dev split only, with each item's own citing judgment left out of the evidence (`bench/eval_resolve.py --split dev`, logs `m3_dev_before_alias.txt` and `m3_dev_after_alias.txt`):
+- correct: 209/246 (85.0%) to 223/246 (90.7%); wrong case: 3 to 1.
+- Hidden-case lookalike match (leave-one-out): 22/246 (8.9%) before and after.
+- The test split has NOT been run with the alias step. Run it once, as the final check.

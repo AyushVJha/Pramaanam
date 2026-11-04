@@ -41,10 +41,14 @@ def run(
         if leave_one_out:
             if item["gold_kind"] != "in_corpus":
                 continue
-            res = resolve(con, cit, threshold, exclude_case=item["gold_case_id"])
+            res = resolve(
+                con, cit, threshold, exclude_case=item["gold_case_id"],
+                exclude_citing=item["citing_case"],
+            )
             item = {**item, "gold_kind": "not_in_corpus", "gold_case_id": None}
         else:
-            res = resolve(con, cit, threshold)
+            # Hide the evidence the citing judgment itself printed: it built this benchmark item.
+            res = resolve(con, cit, threshold, exclude_citing=item["citing_case"])
         results.append((item, res))
     return results
 

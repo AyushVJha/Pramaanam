@@ -222,3 +222,23 @@ The function never raises on bad output. Invalid JSON, a wrong shape or an unver
 
 **5. How do you know it works? What did you measure?**
 Honestly: the logic is tested with a fake model (retrieval ranking, JSON parsing, quote verification, retry, every status mapping), 139 tests in all. No real model has been run yet, so I have no accuracy, cost or latency number, and I say so in the README. The first real numbers will come from the 10-item dev run and then from the M6 benchmark. Tuning of prompt and model happens on dev only.
+
+
+---
+
+## Resolver extension: SCC / AIR aliases
+
+**1. Where does an SCC to case mapping come from if the dataset has no SCC numbers?**
+From the judgments themselves. They print "(2001) 2 SCC 386 : [2001] 1 SCR 1". The SCR number finds the case by exact lookup, so the SCC number beside it names the same case. I mine every such pair into a table. No third-party site is used.
+
+**2. How do you know it is right?**
+Two checks. Of the 390 numbers printed in two or more judgments, 385 agree on one case. And I built the map from 70% of the citing judgments and tested on the rest: 99.0% of answers were right (199 of 201). Caveat: the truth there is the same kind of printed pair, so it measures agreement, not independent proof.
+
+**3. Why did dev go from 85.0% to 90.7% and not more?**
+The table only knows numbers that a judgment prints next to a number the dataset has. That is 1,839 numbers in all, so 26.6% of held-out citations were covered. The rest still use fuzzy names.
+
+**4. Isn't it circular to test on the same judgments that built the map?**
+It would be, so each evaluation item hides the evidence its own citing judgment printed. Without that the item would be answered from its own text. The test split has not been run with this step.
+
+**5. What if two judgments disagree on a number?**
+The step refuses and falls through to fuzzy matching. 5 of 390 repeated numbers conflicted. I never pick a winner by count, because a typo repeated in two places would then win.

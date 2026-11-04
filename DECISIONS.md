@@ -151,3 +151,10 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Choice:** there is no budget for paid APIs, so the default judge is an open model served locally by Ollama (`qwen2.5:7b-instruct`, 4-bit, about 4.7 GB). `OllamaBackend` calls `http://localhost:11434/api/chat` with the standard library (`urllib`), so nothing is added to pyproject. Temperature 0 and JSON mode are on. Cost is logged as $0. The Anthropic backend remains one setting away (`PRAMAAN_JUDGE_BACKEND=anthropic`).
 - **Alternative:** a free hosted tier. Rejected: rate limits, terms changes, and the benchmark would not be repeatable.
 - **Trade-off:** a 7B model is weaker than a frontier model at legal reading, and the evidence-quote check is what protects us from its mistakes. Speed on a 16 GB M4 is unmeasured. Which open model is good enough is decided on dev only.
+
+### SCC / AIR alias table mined from the judgments (resolver extension)
+- **Choice:** add a table `citation_aliases` filled from parallel citations printed in judgments. The resolver tries it after exact SCR/neutral lookup and before fuzzy names. Conflicting evidence (two different cases for one number) is ignored. Each row keeps the judgment that printed it, so the benchmark can leave that judgment out.
+- **Alternative:** buy or scrape a mapping (forbidden), or leave SCC/AIR to name matching only (85% on dev).
+- **Why it is safe:** 99.0% precision on held-out judgments; 385 of 390 repeated numbers agree. Alias confidence is set to 0.99, which is that measured figure, not a guess.
+- **Trade-off:** small. Only numbers that some judgment prints next to an SCR/neutral number are known (1,839 in the whole corpus), so most SCC/AIR citations still go to the fuzzy step. Dev accuracy 85.0% to 90.7%, test not yet run. Stale or mistyped numbers inside judgments become wrong rows; the conflict rule catches only repeats.
+- **Schema change approved by the user** (CLAUDE.md rule). `build_db` now builds the table last; an older database without it still works, the step is skipped.

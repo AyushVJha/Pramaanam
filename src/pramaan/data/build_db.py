@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from pramaan.citations.normalise import parse_neutral, parse_scr
 from pramaan.config import DATA_DIR, DB_PATH, SAMPLE_YEARS
+from pramaan.data.build_aliases import build_aliases
 from pramaan.data.paragraphs import Paragraph, split_paragraphs
 from pramaan.data.pdf_text import PageText, clean_pages, extract_pages
 from pramaan.data.text_layer import load_raw_pages
@@ -253,6 +254,8 @@ def build(
     )
     con.executescript(INDEXES)
     con.commit()
+    n_alias_rows = build_aliases(con)  # needs case_citations and paragraphs, so it runs last
+    logger.info("stored %d SCC/AIR alias evidence rows", n_alias_rows)
     con.close()
     if n_duplicates:
         logger.info("skipped %d duplicate cases listed under two years", n_duplicates)

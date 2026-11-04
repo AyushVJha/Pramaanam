@@ -1,9 +1,10 @@
 """Resolve a citation to a case_id. (M3, SPEC.md section 4 step 3)
 
-Order: exact neutral citation -> exact reporter (SCR) citation -> fuzzy party names + year.
+Order: exact neutral -> exact reporter (SCR) -> alias (SCC / AIR numbers learned from parallel
+citations printed in judgments) -> fuzzy party names + year.
 
-SCC, AIR and SCC OnLine numbers are not in the open dataset, so those citations can only be
-resolved by the fuzzy step (see docs/DATA_NOTES.md section 9).
+SCC, AIR and SCC OnLine numbers are not in the open dataset (docs/DATA_NOTES.md section 9). The
+alias step recovers some SCC / AIR numbers; everything else goes to the fuzzy step.
 """
 
 import sqlite3
@@ -26,7 +27,7 @@ class Candidate(BaseModel):
 class Resolution(BaseModel):
     case_id: str | None
     # "ambiguous": the number matched more than one case, so we refuse to pick one.
-    method: Literal["neutral", "reporter", "fuzzy", "ambiguous", "none"]
+    method: Literal["neutral", "reporter", "alias", "fuzzy", "ambiguous", "none"]
     confidence: float
     alternatives: list[Candidate] = []  # up to 3, best first
 
@@ -37,6 +38,8 @@ DEFAULT_THRESHOLD = 0.85
 # If the runner-up scores within this of the winner, the name alone cannot tell them apart.
 TIE_MARGIN = 0.02
 _EXACT_METHOD = {"INSC": "neutral", "SCR": "reporter"}
+# Measured on held-out judgments: 99.0% of alias answers were right (DATA_NOTES.md section 13).
+ALIAS_CONFIDENCE = 0.99
 
 
 def lookup_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> list[Candidate]:
@@ -69,6 +72,30 @@ def resolve_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> Resolution
     return Resolution(
         case_id=None, method="ambiguous", confidence=0.0, alternatives=hits[:MAX_ALTERNATIVES]
     )
+
+
+def resolve_alias(
+    con: sqlite3.Connection, parsed: ParsedCitation, exclude_citing: str | None = None
+) -> Resolution | None:
+    """Look an SCC / AIR number up in the alias table. None if unknown, or if the evidence
+    names more than one case (then we do not guess; the fuzzy step takes over).
+
+    `exclude_citing` hides the evidence printed by one judgment, so a benchmark built from that
+    judgment cannot be answered from its own text.
+    """
+    if parsed.reporter not in ("SCC", "AIR"):
+        return None
+    try:
+        rows = con.execute(
+            "SELECT DISTINCT case_id FROM citation_aliases "
+            "WHERE reporter = ? AND year = ? AND volume IS ? AND page = ? AND citing_case != ?",
+            (parsed.reporter, parsed.year, parsed.volume, parsed.page, exclude_citing or ""),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return None  # an older database without the alias table
+    if len(rows) != 1:
+        return None
+    return Resolution(case_id=rows[0][0], method="alias", confidence=ALIAS_CONFIDENCE)
 
 
 def resolve_fuzzy(
@@ -111,12 +138,15 @@ def resolve_fuzzy(
 
 def resolve(
     con: sqlite3.Connection, citation: Citation, threshold: float = DEFAULT_THRESHOLD,
-    exclude_case: str | None = None,
+    exclude_case: str | None = None, exclude_citing: str | None = None,
 ) -> Resolution:
-    """Exact neutral -> exact reporter -> fuzzy names + year. `exclude_case` is for benchmarks."""
+    """Exact -> alias -> fuzzy. `exclude_case` and `exclude_citing` are for benchmarks only."""
     year = citation.parsed.year if citation.parsed else None
     if citation.parsed is not None:
         exact = resolve_exact(con, citation.parsed)
         if exact is not None:
             return exact
+        alias = resolve_alias(con, citation.parsed, exclude_citing)
+        if alias is not None and alias.case_id != exclude_case:
+            return alias
     return resolve_fuzzy(con, citation.case_name, year, threshold, exclude_case)
