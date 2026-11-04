@@ -88,3 +88,13 @@ def test_pdf_draft_text_is_read_and_scan_is_refused(tmp_path):
     blank.save(str(g))
     with pytest.raises(ValueError, match="no text layer"):
         read_draft(g)
+
+
+def test_docx_that_unzips_to_a_huge_size_is_refused(tmp_path):
+    import zipfile
+
+    f = tmp_path / "bomb.docx"
+    with zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("word/document.xml", "<a>" + "x" * (60 * 1024 * 1024) + "</a>")
+    with pytest.raises(ValueError, match="too large"):
+        read_draft(f)

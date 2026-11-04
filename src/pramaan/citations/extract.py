@@ -7,6 +7,7 @@ Case-name-only mentions use regex + heuristic filtering only (no LLM fallback ye
 rather than blocking M2 on building that infrastructure early).
 """
 
+import bisect
 import re
 
 from pydantic import BaseModel
@@ -18,6 +19,7 @@ from pramaan.citations.patterns import CASE_NAME, STRUCTURED
 # "Bhanu Kumar Jain vs. Archana Kumar, AIR 2005 SC 626" — the name precedes the citation.
 _CASE_NAME_PROXIMITY = 40
 _QUOTE_TIGHT_GAP = 100  # characters between a quote and its citation
+_MAX_SPAN = 300  # no citation or case name is longer than this; longer matches are junk
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
 _MIN_QUOTE_CHARS = 15
@@ -142,6 +144,8 @@ def _find_case_name_matches(text: str) -> list[tuple[int, int, str]]:
     out = []
     for m in CASE_NAME.finditer(text):
         raw = m.group(0).strip()
+        if len(raw) > _MAX_SPAN:
+            continue
         start = m.start()
         if not _is_plausible_case_name(raw):
             trimmed = _trim_to_name(raw)
@@ -155,29 +159,44 @@ def _find_case_name_matches(text: str) -> list[tuple[int, int, str]]:
 def _attach_case_names(
     structured: list[tuple[int, int, str, str]], case_names: list[tuple[int, int, str]]
 ) -> tuple[dict[int, tuple[str, int]], set[int]]:
-    """Map each structured match's index to a preceding case name, if close enough."""
+    """Map each structured match's index to the nearest preceding case name, if close enough.
+
+    Case names come from finditer, so they do not overlap and their ends are increasing:
+    bisect finds the few names ending within the proximity window (a plain double loop was
+    quadratic and hung on a drafts with tens of thousands of citations).
+    """
     attached: dict[int, tuple[str, int]] = {}  # index -> (name, where the name ends)
     used: set[int] = set()
+    ends = [end for _s, end, _n in case_names]
     for i, (start, _end, _fmt, _raw) in enumerate(structured):
+        lo = bisect.bisect_left(ends, start - _CASE_NAME_PROXIMITY)
+        hi = bisect.bisect_right(ends, start)
         best = None
-        for j, (_cn_start, cn_end, name) in enumerate(case_names):
+        for j in range(lo, hi):
             if j in used:
                 continue
-            gap = start - cn_end
-            if 0 <= gap <= _CASE_NAME_PROXIMITY:
-                best = (j, name)
+            best = (j, case_names[j][2])  # the last unused name in range is the nearest
         if best:
             attached[i] = (_clean_case_name(best[1]), case_names[best[0]][1])
             used.add(best[0])
     return attached, used
 
 
-def _proposition(text: str, span: tuple[int, int]) -> str:
-    """The sentence(s) containing `span`."""
+def _sentence_bounds(text: str) -> tuple[list[int], list[int]]:
+    """Where sentences end and begin: (starts of the breaks, ends of the breaks), both sorted."""
+    breaks = list(_SENTENCE_SPLIT.finditer(text))
+    return [m.start() for m in breaks], [m.end() for m in breaks]
+
+
+def _proposition(text: str, span: tuple[int, int], bounds: tuple[list[int], list[int]]) -> str:
+    """The sentence(s) containing `span`. `bounds` is computed once per text (see
+    _sentence_bounds): scanning the text again for every citation was quadratic."""
+    break_starts, break_ends = bounds
     start, end = span
-    sentence_start = max((m.end() for m in _SENTENCE_SPLIT.finditer(text[:start])), default=0)
-    following = _SENTENCE_SPLIT.search(text, end)
-    sentence_end = following.start() if following else len(text)
+    before = bisect.bisect_right(break_ends, start) - 1
+    sentence_start = break_ends[before] if before >= 0 else 0
+    after = bisect.bisect_left(break_starts, end)
+    sentence_end = break_starts[after] if after < len(break_starts) else len(text)
     return text[sentence_start:sentence_end].strip()
 
 
@@ -253,9 +272,15 @@ def _assign_nearest(
     A citation keeps the first (leftmost) match assigned to it.
     """
     owner: dict[int, re.Match] = {}
+    order = sorted(range(len(spans)), key=lambda k: spans[k][0])
+    starts = [spans[k][0] for k in order]
     for m in matches:
         best: tuple[int, int] | None = None  # (gap, citation index)
-        for i, (start, end) in enumerate(spans):
+        # Only spans starting near the match can be within the window (spans are short).
+        first = bisect.bisect_left(starts, m.start() - window - _MAX_SPAN)
+        last = bisect.bisect_right(starts, m.end() + window)
+        for i in order[first:last]:
+            start, end = spans[i]
             if m.start() <= start and end <= m.end():
                 continue  # the citation sits INSIDE this passage: it is quoting someone else
             gap = max(0, m.start() - end, start - m.end())
@@ -307,6 +332,7 @@ def extract(text: str) -> list[Citation]:
     def para_of(k: int) -> int | None:
         return int(para_refs[k].group(1)) if k in para_refs else None
 
+    bounds = _sentence_bounds(text)
     citations = []
     for i, (start, end, fmt, raw) in enumerate(structured):
         span = (start, end)
@@ -320,7 +346,7 @@ def extract(text: str) -> list[Citation]:
                 name_tight=i not in attached_names
                 or _name_is_tight(text, attached_names[i][1], start),
                 quote_tight=i not in quotes or _quote_is_tight(text, quotes[i], span),
-                proposition=_proposition(text, span),
+                proposition=_proposition(text, span, bounds),
                 quoted_text=quote_of(i),
                 para_ref=para_of(i),
             )
@@ -340,7 +366,7 @@ def extract(text: str) -> list[Citation]:
                 format="CASE_NAME",
                 case_name=cleaned_name,
                 quote_tight=idx not in quotes or _quote_is_tight(text, quotes[idx], span),
-                proposition=_proposition(text, span),
+                proposition=_proposition(text, span, bounds),
                 quoted_text=quote_of(idx),
                 para_ref=para_of(idx),
             )

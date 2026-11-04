@@ -32,7 +32,9 @@ SCR = re.compile(
 #   "AIR 2005 SC 626"-style citation (Appendix A's \w and comma both included digits)
 # - each side is capped at 8 words so it can't swallow a whole preceding clause like
 #   "To cite a few judgments in this regard are Y.S. Jagan Mohan Reddy v. ..."
-_NAME_PART = r"[A-Z][A-Za-z.&'\-]*(?:\s+[A-Za-z.&'\-]+){0,7}"
+# The lookbehind lets a match start only at the beginning of a word. Without it a long run of
+# capitals is rescanned from every position (quadratic: a 500 KB upload hung the server).
+_NAME_PART = r"(?<![A-Za-z.&'\-])[A-Z][A-Za-z.&'\-]*(?:\s+[A-Za-z.&'\-]+){0,7}"
 CASE_NAME = re.compile(rf"{_NAME_PART}\s+v(?:s)?\.?\s+{_NAME_PART}")
 
 # Checked in priority order: more specific formats first, so a SCR match inside a longer

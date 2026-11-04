@@ -90,3 +90,13 @@ def test_lowercase_typed_names_are_left_alone():
     from pramaan.citations.extract import _clean_case_name
 
     assert _clean_case_name("ram prasad v. state of bihar") == "ram prasad v. state of bihar"
+
+
+def test_hostile_inputs_finish_quickly():
+    import time
+
+    start = time.time()
+    extract("A" * 300_000)
+    extract("A v. B, (1978) 1 SCC 248; " * 10_000)
+    extract("Aa " * 100_000)
+    assert time.time() - start < 10  # these once took minutes (quadratic matching)

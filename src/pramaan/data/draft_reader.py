@@ -38,7 +38,14 @@ def _notes_text(path: Path) -> list[str]:
     return out
 
 
+MAX_PDF_PAGES = 300
+MAX_UNZIPPED_BYTES = 50 * 1024 * 1024  # a 2 MB upload can hold gigabytes after unzipping
+
+
 def _docx_text(path: Path) -> str:
+    with zipfile.ZipFile(path) as z:
+        if sum(info.file_size for info in z.infolist()) > MAX_UNZIPPED_BYTES:
+            raise ValueError("This Word file is too large once unpacked.")
     doc = Document(str(path))
     parts: list[str] = []
     for child in doc.element.body.iterchildren():
@@ -63,6 +70,8 @@ def _pdf_text(path: Path) -> str:
 
     parts: list[str] = []
     with pymupdf.open(path) as doc:
+        if len(doc) > MAX_PDF_PAGES:
+            raise ValueError(f"This PDF has more than {MAX_PDF_PAGES} pages; split the draft.")
         for page in doc:
             for block in page.get_text("blocks", sort=True):
                 if block[6] == 0:  # 0 = text block, 1 = image
