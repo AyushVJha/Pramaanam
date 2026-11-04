@@ -12,7 +12,8 @@ import statistics
 import pyarrow.parquet as pq
 
 con = sqlite3.connect("file:pramaan.db?mode=ro", uri=True)
-print(f"{'year':<6}{'pdfs':>6}{'mostly-empty':>14}{'median empty pages':>20}{'text kept in DB':>17}")
+header = ["year", "pdfs", "mostly-empty", "median empty pages", "text kept in DB"]
+print("".join(f"{h:<6}" if i == 0 else f"{h:>20}" for i, h in enumerate(header)))
 for year in (1955, 1965, 1975, 1985, 1995, 2005, 2015, 2023):
     t = pq.read_table(f"data/text/year={year}/pages.parquet").to_pandas()
     t["n"] = t["text"].str.len()
@@ -34,6 +35,6 @@ for year in (1955, 1965, 1975, 1985, 1995, 2005, 2015, 2023):
     empty_pct = (g["empty"] / g["pages"]).median() * 100
     kept_pct = 100 * statistics.median(ratios) if ratios else float("nan")
     print(
-        f"{year:<6}{len(g):>6}{100 * mostly_empty / len(g):>13.1f}%{empty_pct:>19.1f}%"
-        f"{kept_pct:>16.0f}%"
+        f"{year:<6}{len(g):>20}{100 * mostly_empty / len(g):>19.1f}%{empty_pct:>19.1f}%"
+        f"{kept_pct:>19.0f}%"
     )
