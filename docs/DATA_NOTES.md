@@ -377,4 +377,4 @@ Alias answers on dev by number of independent citing judgments backing the answe
 49 right, 1 wrong; 2 judgments: 15 right; 3 or more: 22 right. Tiny numbers, so no threshold or
 confidence was changed. What this does suggest for the verdict design: an alias-only answer backed
 by one judgment must not be reported as proof; it needs the case name and year to agree as well.
-Reproduce: scratchpad query described here (alias rows by `citing_case` count); not a committed script.
+Reproduce: `uv run python scripts/alias_witness_dev.py`.
