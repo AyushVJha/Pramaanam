@@ -398,7 +398,7 @@ normalised. Nothing was tuned on these pages.
 | worst page | 0.169 | 0.171 | 0.161 | 0.154 |
 
 **What it says, and does not say.**
-- On most of these pages the embedded layer is already close (7 of 10 pages under 3%), and
+- On most of these pages the embedded layer is already close (8 of 10 pages under 3%), and
   Tesseract with automatic layout (psm 3) is about as good or better (median 0.2%).
 - The embedded layer is not always that good: the page that prompted this work
   (1955_2_919_924 p1, "settll", "wit~1", words split one per line) is not in the 10, so n=10 may
