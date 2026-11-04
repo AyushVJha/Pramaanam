@@ -201,3 +201,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** build all 38k judgments (about 158 h on this laptop, measured in DATA_NOTES 17) or rent GPU/CPU time (costs money; company server needs approval).
 - **Why:** a citation check touches a handful of judgments; precomputing everything buys little.
 - **Trade-off:** first check of a judgment is slow (about 3 s per page); results are cached in the store, so repeats are instant.
+
+## MISQUOTE needs a second reading when one exists
+- **Choice:** when the quote is not found in the embedded text, look in the layout layer (checks/second_reading.py). Found there -> NEEDS_REVIEW; absent from both -> MISQUOTE (if case proven). No layout stored -> MISQUOTE as before (single reading; "not_found" already means no near match anywhere).
+- **Alternative:** always require layout (MISQUOTE almost never fires, since layout is on-demand) or never use it.
+- **Why:** two independent readings agreeing is stronger evidence; absence of the layer must not silently block warnings.
+- **Trade-off:** results depend on which judgments were converted; the reason text says when two readings were used.

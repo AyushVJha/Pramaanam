@@ -25,6 +25,7 @@ from pydantic import BaseModel
 from pramaan.checks.identity import IdentityResult, check_identity
 from pramaan.checks.paragraph import ParagraphResult, check_paragraph
 from pramaan.checks.quotes import QuoteResult, check_quote
+from pramaan.checks.second_reading import second_reading
 from pramaan.checks.support import SupportResult, check_support
 from pramaan.citations.extract import Citation, extract
 from pramaan.llm.client import Backend
@@ -138,7 +139,16 @@ def check_citation(
         quote = check_quote(con, case_id, citation.quoted_text)
         found["quote"] = quote
         if quote.status == "not_found":
-            return warn("MISQUOTE", "The quoted words were not found in the judgment.")
+            other = second_reading(con, case_id, citation.quoted_text)
+            if other is not None and other.status != "not_found":
+                return CitationReport(
+                    **found, status="NEEDS_REVIEW",
+                    reason="The quote is missing from the PDF's embedded text but appears in a "
+                    "second reading of the page images. The source text is unreliable here; "
+                    "compare with the printed page.",
+                )
+            note = " (checked in two independent readings)" if other is not None else ""
+            return warn("MISQUOTE", f"The quoted words were not found in the judgment{note}.")
         if quote.status == "near_match":
             changes = "; ".join(quote.changes) or "wording differs slightly"
             if quote.noise_like and not quote.flags:

@@ -156,3 +156,10 @@ def test_annexure_formats_carry_disclaimer_escape_html_and_state_checks_run(con,
     assert "<script>" not in page and "&lt;script&gt;" in page and "draft&lt;x&gt;.txt" in page
     off = render_markdown([ok], source="d", date="d", llm_used=False, model=None)
     assert "Support check: not run" in off
+
+
+def test_second_reading_is_none_without_a_layout_store(con, tmp_path):
+    from pramaan.checks.second_reading import second_reading
+
+    con.execute("UPDATE cases SET pdf_path = '1960_1_1_2_EN.pdf' WHERE cnr = 'C1'")
+    assert second_reading(con, "C1", "Anticipatory bail may be granted", tmp_path) is None
