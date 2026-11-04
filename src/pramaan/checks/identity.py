@@ -16,7 +16,7 @@ NAME_MATCH_THRESHOLD = 0.7
 # Each party must fit at least this well for a full "match". The average alone lets
 # "Raja Ram v. Union of India" pass for "Bhule Ram v. Union of India" (DATA_NOTES 23).
 # Chosen on dev (resolve_dev gold cases), never on test.
-PARTY_MIN = 0.5
+PARTY_MIN = 0.6
 # A report year can be up to this many years after the decision year (DATA_NOTES.md).
 MAX_REPORT_LAG = 2
 
