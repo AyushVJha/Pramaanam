@@ -104,3 +104,17 @@ def test_report_lists_status_evidence_and_disclaimer(con, tmp_path):
     out = render_report([run(con, cit(), tmp=tmp_path)])
     assert "[VERIFIED]" in out and "para 2" in out and "A lawyer decides" in out
     assert render_report([]) == "No citations found in the draft."
+
+
+def test_annexure_formats_carry_disclaimer_escape_html_and_state_checks_run(con, tmp_path):
+    from pramaan.report import DISCLAIMER, render_html, render_markdown
+
+    hostile = cit(raw="1960 INSC 5<script>x()</script>")
+    ok = run(con, hostile, tmp=tmp_path, model="claude-haiku-5-5")
+    meta = {"source": "draft<x>.txt", "date": "2026-11-04", "llm_used": True, "model": "m"}
+    md = render_markdown([ok], **meta)
+    assert DISCLAIMER in md and "| 1 |" in md and "support (model: m)" in md
+    page = render_html([ok], **meta)
+    assert "<script>" not in page and "&lt;script&gt;" in page and "draft&lt;x&gt;.txt" in page
+    off = render_markdown([ok], source="d", date="d", llm_used=False, model=None)
+    assert "Support check: not run" in off
