@@ -2,14 +2,14 @@
 
 Status: the pieces below are tested locally (download, checksum, unpack, rate limit, app).
 Last full local rehearsal: 2026-11-05. The serving database was rebuilt from the current pramaan.db
-(327 MB gzipped, 1.35 GB unpacked, sha256 in dist/pramaan-serving.sha256), served from a local
+(439 MB gzipped, 1.86 GB unpacked, sha256 in dist/pramaan-serving.sha256), served from a local
 web server, fetched and verified by the app on first start, and answered a 6-citation draft
 with the same statuses as the full database.
 The Dockerfile has NOT been built (Docker is not installed on the dev machine) and nothing has
 been published. Do the checks at the end before making anything public.
 
 ## 1. Build the serving database
-    uv run python scripts/build_serving_db.py     # dist/pramaan-serving.db.gz (327 MB) + .sha256
+    uv run python scripts/build_serving_db.py     # dist/pramaan-serving.db.gz (439 MB) + .sha256
 
 ## 2. Host the file
 Upload `dist/pramaan-serving.db.gz` somewhere with a stable public URL, for example a public
@@ -30,7 +30,7 @@ Do not set PRAMAAN_ENABLE_LLM on a public host unless you have a model for it to
 Use ONE worker process (`uvicorn ... --workers 1`, the default). The rate limiter keeps its counts in
 memory, so several workers would each allow the full number of uploads. Checks run in a thread pool,
 so a slow request does not block the others. The app opens the database read-only, one connection
-per request. Expect about 1.4 GB of disk for the database plus the 327 MB download while unpacking.
+per request. Expect about 1.9 GB of disk for the database plus the 439 MB download while unpacking.
 Not measured: memory use of the running app, sustained load, behaviour behind a real proxy.
 
 ## Settings
