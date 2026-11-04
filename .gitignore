@@ -21,3 +21,4 @@ bench/data/*
 
 # serving database build output
 /dist/
+MANIFEST.json

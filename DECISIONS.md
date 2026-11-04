@@ -207,3 +207,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** always require layout (MISQUOTE almost never fires, since layout is on-demand) or never use it.
 - **Why:** two independent readings agreeing is stronger evidence; absence of the layer must not silently block warnings.
 - **Trade-off:** results depend on which judgments were converted; the reason text says when two readings were used.
+
+## Invariants suite and corpus manifest (step 6)
+- **Choice:** `pramaan.data.invariants` holds SQL checks (hard = must be 0, soft = known source gaps that are counted); `make invariants` runs them; `MANIFEST.json` (gitignored, 1.7 GB db) records the db sha256, table counts and soft counts.
+- **Alternative:** a migration/versioning framework. Overkill for a database we rebuild from the archive.
+- **Why:** a rebuild that silently changes counts or breaks references must be visible.
+- **Trade-off:** the manifest is local, not committed; the soft counts are the thing to compare by eye after a rebuild.

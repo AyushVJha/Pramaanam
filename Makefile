@@ -1,4 +1,4 @@
-.PHONY: setup data-sample db db-sample test lint bench-dev bench-test demo
+.PHONY: invariants setup data-sample db db-sample test lint bench-dev bench-test demo
 
 setup:
 	uv sync
@@ -35,3 +35,6 @@ demo:
 # Load .env (if present) so PRAMAAN_* settings reach python.
 -include .env
 export
+
+invariants:
+	uv run python scripts/check_invariants.py
