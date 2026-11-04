@@ -23,15 +23,15 @@ status promises.
 
 | Check | Command | Result |
 |---|---|---|
-| Find the right case from an SCC/AIR number + name (246 items) | `make bench-dev` | 97.6% right case, 0.4% wrong case |
-| Whole pipeline on those items, AI check off | `make bench-pipeline` | 146 VERIFIED, 0 on a wrong case |
+| Find the right case from an SCC/AIR number + name (246 items) | `make bench-dev` | 98.0% right case, 0.4% wrong case |
+| Whole pipeline on those items, AI check off | `make bench-pipeline` | 150 VERIFIED, 0 on a wrong case |
 | Whole pipeline on 896 quote items | `make bench-pipeline-quotes` | 124 of 124 real quotes VERIFIED; 0 of 524 altered or invented quotes VERIFIED |
-| 300 whole real judgments fed in as drafts | `scripts/stress_real_text.py 300` | 4,348 mentions; 1,174 VERIFIED; 10 accusations (8 MISQUOTE, 2 NAME_MISMATCH); the 8 MISQUOTEs read by hand are scan noise in the citing text |
+| 300 whole real judgments fed in as drafts | `scripts/stress_real_text.py 300` | 4,348 mentions; 1,178 VERIFIED; 10 accusations (8 MISQUOTE, 2 NAME_MISMATCH); the 8 MISQUOTEs read by hand are scan noise in the citing text |
 | Local AI judge (qwen3:8b), 39 noisy items | `bench/eval_support.py` | 0 of 15 negatives called supported; 41.7% of positives accepted; 20.5% gave no valid answer; median 45 s per item (too slow for live use) |
 
 The benchmarks use synthetic alterations of real quotes and citations printed in real judgments, so
 they show the checks behave as designed, not how real lawyers' drafts will fare. Coverage numbers
-(146 VERIFIED of 246) are a floor: the benchmark hides the evidence the citing judgment itself printed.
+(150 VERIFIED of 246) are a floor: the benchmark hides the evidence the citing judgment itself printed.
 
 ## Results (test split, run once on 2026-11-05)
 
