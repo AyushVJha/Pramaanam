@@ -65,9 +65,28 @@ def fts_query(petitioner: str, respondent: str) -> str | None:
     return " OR ".join(f'"{w}"' for w in dict.fromkeys(words))
 
 
+_SKIP_IN_ACRONYM = {"of", "the", "and", "for", "&"}
+
+
+def _is_acronym_of(short: str, full: str) -> bool:
+    """'D.D.A' or 'DDA' against 'Delhi Development Authority': the letters are the initials."""
+    letters = re.sub(r"[^A-Za-z]", "", short)
+    if not (2 <= len(letters) <= 6) or not short.replace(".", "").replace(" ", "").isupper():
+        return False
+    words = [w for w in re.findall(r"[A-Za-z]+", full) if w.lower() not in _SKIP_IN_ACRONYM]
+    return letters.lower() == "".join(w[0] for w in words).lower()
+
+
 def party_similarity(a: str, b: str) -> float:
-    """0-1 similarity of two party names after stripping '& Ors.', 'M/s' etc."""
-    return fuzz.token_set_ratio(normalise_party_name(a), normalise_party_name(b)) / 100
+    """0-1 similarity of two party names after stripping '& Ors.', 'M/s' etc.
+
+    An acronym that is exactly the initials of the other name ("DDA" for "Delhi Development
+    Authority") scores 0.9: strong, but a notch below an exact match.
+    """
+    base = fuzz.token_set_ratio(normalise_party_name(a), normalise_party_name(b)) / 100
+    if _is_acronym_of(a.strip(), b) or _is_acronym_of(b.strip(), a):
+        return max(base, 0.9)
+    return base
 
 
 def find_name_candidates(

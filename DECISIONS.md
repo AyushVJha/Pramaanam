@@ -230,3 +230,9 @@ Each entry: choice, alternative considered, why, trade-off.
   (case, para_no) unique and sorted, and real paragraph numbers are always positive.
 - **Trade-off:** a few more paragraphs per case (headers, headnotes), so a quote can now match
   header text. Reversible: rebuild from the raw text layer; old DB backed up outside the repo.
+
+## Acronym parties score 0.9 against their expansion
+- **Choice:** in `party_similarity`, an all-capital acronym (2-6 letters) that equals the initials of the other name ("D.D.A" / "Delhi Development Authority") scores at least 0.9.
+- **Alternative:** a hand-made list of abbreviations; or leave acronyms to fuzzy matching (scored 0.1).
+- **Why:** real citations use acronyms and were landing in NEEDS_REVIEW. The rule needs no list and the letters must match exactly.
+- **Trade-off:** two different bodies with the same initials would match on name alone; VERIFIED still needs the proven number and year, so this only affects the name check. Dev: VERIFIED 144 -> 146, false VERIFIED 0.

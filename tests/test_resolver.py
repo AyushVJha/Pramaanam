@@ -219,3 +219,11 @@ def test_shared_neutral_number_is_decided_by_the_drafts_name_only_if_unique():
     assert resolve(con, cit("Bhule Ram v. Union of India", 222)).case_id == "A"
     assert resolve(con, cit("Sushil Ansal v. State", 168)).method == "ambiguous"
     assert resolve(con, cit(None, 222)).method == "ambiguous"
+
+
+def test_acronym_party_matches_its_expansion():
+    from pramaan.resolve.names import party_similarity
+
+    assert party_similarity("D.D.A", "DELHI DEVELOPMENT AUTHORITY") >= 0.9
+    assert party_similarity("DDA", "Delhi Development Authority") >= 0.9
+    assert party_similarity("ABC", "Delhi Development Authority") < 0.5
