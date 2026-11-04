@@ -30,6 +30,8 @@ class Resolution(BaseModel):
     method: Literal["neutral", "reporter", "alias", "fuzzy", "ambiguous", "none"]
     confidence: float
     alternatives: list[Candidate] = []  # up to 3, best first
+    # For alias answers: how many OTHER judgments print this exact parallel-citation pair.
+    witnesses: int | None = None
 
 
 MAX_ALTERNATIVES = 3
@@ -95,7 +97,16 @@ def resolve_alias(
         return None  # an older database without the alias table
     if len(rows) != 1:
         return None
-    return Resolution(case_id=rows[0][0], method="alias", confidence=ALIAS_CONFIDENCE)
+    witnesses = con.execute(
+        "SELECT COUNT(DISTINCT citing_case) FROM citation_aliases "
+        "WHERE reporter = ? AND year = ? AND volume IS ? AND page = ? AND case_id = ? "
+        "AND citing_case != ?",
+        (parsed.reporter, parsed.year, parsed.volume, parsed.page, rows[0][0],
+         exclude_citing or ""),
+    ).fetchone()[0]
+    return Resolution(
+        case_id=rows[0][0], method="alias", confidence=ALIAS_CONFIDENCE, witnesses=witnesses
+    )
 
 
 def resolve_fuzzy(

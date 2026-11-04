@@ -39,6 +39,9 @@ class QuoteResult(BaseModel):
     matched_text: str | None = None  # the judgment's own words (lowercased) for the first piece
     changes: list[str] = []  # e.g. ["quote has 'not', judgment has 'now'"]
     flags: list[str] = []  # "negation", "number"
+    # True when every difference is a single word that looks like a misread of the same word
+    # (scan/OCR noise), with no negation or number involved. Used to avoid calling noise a misquote.
+    noise_like: bool = False
 
 
 def normalise(text: str) -> str:
@@ -52,11 +55,19 @@ def split_segments(quote: str) -> list[str]:
     return [p for p in pieces if len(p.split()) >= MIN_SEGMENT_WORDS]
 
 
-def _describe_changes(quote: str, found: str) -> tuple[list[str], list[str]]:
-    """Word-level differences between the quote and the judgment's words, plus flags."""
+WORD_NOISE_SIMILARITY = 60.0  # letter-level similarity (0-100) of two words that may be one word
+
+
+def _describe_changes(quote: str, found: str) -> tuple[list[str], list[str], bool]:
+    """Word-level differences between the quote and the judgment's words, plus flags.
+
+    The third value says whether every difference could be scan noise: one word replaced by a
+    word that shares most of its letters ("settle" / "settll"), and no negation or number.
+    """
     a, b = quote.split(), found.split()
     changes: list[str] = []
     flags: set[str] = set()
+    noise_like = True
     for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
         if op == "equal":
             continue
@@ -67,7 +78,10 @@ def _describe_changes(quote: str, found: str) -> tuple[list[str], list[str]]:
             flags.add("negation")
         if any(w.isdigit() for w in changed):
             flags.add("number")
-    return changes, sorted(flags)
+        one_for_one = op == "replace" and i2 - i1 == 1 and j2 - j1 == 1
+        if not (one_for_one and fuzz.ratio(mine, theirs) >= WORD_NOISE_SIMILARITY):
+            noise_like = False
+    return changes, sorted(flags), noise_like and not flags
 
 
 class _Hit(BaseModel):
@@ -177,6 +191,7 @@ def check_quote_in_paragraphs(paragraphs: list[tuple[int, str]], quote: str) -> 
     first_hits: list[_Hit] = []
     all_changes: list[str] = []
     all_flags: set[str] = set()
+    all_noise = True
     spans = False
     for k, seg in enumerate(segments):
         hits = _best_hit(paras, seg)
@@ -188,9 +203,10 @@ def check_quote_in_paragraphs(paragraphs: list[tuple[int, str]], quote: str) -> 
         if k == 0:
             first_hits = hits
         if top.score < 100.0:
-            changes, flags = _describe_changes(seg, top.matched)
+            changes, flags, noise = _describe_changes(seg, top.matched)
             all_changes += changes
             all_flags.update(flags)
+            all_noise = all_noise and noise
 
     status: Literal["verbatim", "near_match"] = "verbatim" if worst >= 100.0 else "near_match"
     nos: list[int] = []
@@ -201,6 +217,7 @@ def check_quote_in_paragraphs(paragraphs: list[tuple[int, str]], quote: str) -> 
         status=status, similarity=worst / 100, para_nos=nos[:MAX_PARA_HITS],
         spans_paragraphs=spans, matched_text=first_hits[0].matched,
         changes=all_changes, flags=sorted(all_flags),
+        noise_like=status == "near_match" and all_noise and bool(all_changes),
     )
 
 

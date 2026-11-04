@@ -94,10 +94,48 @@ def test_judge_verdicts_map_to_statuses(con, tmp_path):
         assert r.status == status
 
 
-def test_no_llm_flag_never_verifies(con, tmp_path):
+def test_no_llm_still_verifies_the_citation_and_says_proposition_unchecked(con, tmp_path):
     fake = Fake()
     r = run(con, cit(), fake, tmp=tmp_path, use_llm=False)
-    assert r.status == "NEEDS_REVIEW" and fake.calls == 0
+    assert r.status == "VERIFIED" and fake.calls == 0
+    assert "proposition was not checked" in r.reason
+
+
+def _add_alias(con, witnesses):
+    from pramaan.data.build_aliases import ALIASES_SCHEMA
+
+    con.executescript(ALIASES_SCHEMA)
+    for i in range(witnesses):
+        con.execute(
+            "INSERT INTO citation_aliases VALUES ('SCC', 1960, 2, 77, 'C1', ?)", (f"X{i}",),
+        )
+
+
+def alias_cit(**kw):
+    c = cit(raw="(1960) 2 SCC 77", **kw)
+    c.parsed = ParsedCitation(reporter="SCC", year=1960, volume=2, page=77)
+    return c
+
+
+def test_single_witness_alias_never_verifies_or_accuses(con, tmp_path):
+    _add_alias(con, 1)
+    ok = run(con, alias_cit(), tmp=tmp_path)
+    assert ok.status == "NEEDS_REVIEW" and not ok.case_proven
+    bad = run(con, alias_cit(quote="Bail is an absolute right of every accused"), tmp=tmp_path)
+    assert bad.status == "NEEDS_REVIEW" and "Possible MISQUOTE" in bad.reason
+
+
+def test_two_witness_alias_is_proven(con, tmp_path):
+    _add_alias(con, 2)
+    assert run(con, alias_cit(), tmp=tmp_path).status == "VERIFIED"
+    bad = run(con, alias_cit(quote="Bail is an absolute right of every accused"), tmp=tmp_path)
+    assert bad.status == "MISQUOTE"
+
+
+def test_ai_unsupported_cannot_fire_on_unproven_case(con, tmp_path):
+    _add_alias(con, 1)
+    r = run(con, alias_cit(), Fake("not_supported"), tmp=tmp_path)
+    assert r.status == "NEEDS_REVIEW"
 
 
 def test_report_lists_status_evidence_and_disclaimer(con, tmp_path):

@@ -41,7 +41,7 @@ def test_check_text_returns_json_with_status(db_path):
     r = upload(c, "d.txt", b"Ram Lal v. State of Bihar, 1960 INSC 5 held that bail is a right.")
     body = r.json()
     assert r.status_code == 200 and "not legal advice" in body["disclaimer"].lower()
-    assert body["citations"][0]["status"] == "NEEDS_REVIEW"  # found, support check not run
+    assert body["citations"][0]["status"] == "VERIFIED"  # exact number, AI check off
     assert body["citations"][0]["case_id"] == "C1"
 
 

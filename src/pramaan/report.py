@@ -38,14 +38,18 @@ DISCLAIMER = (
 )
 
 STATUS_MEANING = {
-    "VERIFIED": "Found, name and year match, quotes found, judgment supports the proposition.",
+    "VERIFIED": "The citation is proven to exist, name and year match, and any quote is "
+    "word-for-word. This does NOT say the judgment supports your argument.",
     "NOT_FOUND_IN_CORPUS": "No matching judgment in the corpus. Not a finding that it is fake.",
     "NAME_MISMATCH": "The citation resolves to a different case than the name given.",
     "MISQUOTE": "Quoted words were not found in the judgment.",
     "WRONG_PARAGRAPH": "The content exists but not at the cited paragraph.",
     "UNSUPPORTED": "The judgment does not appear to support the proposition.",
     "CONTRADICTED": "The judgment appears to say the opposite of the proposition.",
-    "NEEDS_REVIEW": "Low confidence or a check was not run. A person must look.",
+    "LOW_FIDELITY_SOURCE": "The quote matches except for what looks like scan noise in the "
+    "source text. Compare with the printed page.",
+    "CANNOT_VERIFY": "The check could not be run for this citation.",
+    "NEEDS_REVIEW": "Not proven, or a check was inconclusive. A person must look.",
 }
 
 
@@ -112,7 +116,7 @@ def render_html(
         "<style>body{font:15px/1.5 system-ui,sans-serif;max-width:60rem;margin:2rem auto;"
         "padding:0 1rem}table{border-collapse:collapse;width:100%}td,th{border:1px solid #bbb;"
         "padding:.4rem;text-align:left;vertical-align:top}.s-VERIFIED{color:#166534}"
-        ".s-NOT_FOUND_IN_CORPUS,.s-NEEDS_REVIEW{color:#92400e}.s-NAME_MISMATCH,.s-MISQUOTE,"
+        ".s-NOT_FOUND_IN_CORPUS,.s-NEEDS_REVIEW,.s-LOW_FIDELITY_SOURCE,.s-CANNOT_VERIFY{color:#92400e}.s-NAME_MISMATCH,.s-MISQUOTE,"
         ".s-WRONG_PARAGRAPH,.s-UNSUPPORTED,.s-CONTRADICTED{color:#991b1b}"
         "blockquote{border-left:4px solid #bbb;margin:1rem 0;padding:.2rem 1rem}</style></head>"
         f"<body><h1>Citation verification annexure</h1><p>Draft: {esc(source)} &nbsp;|&nbsp; "
