@@ -65,3 +65,12 @@ def test_supplement_citation_never_resolves_to_the_regular_case(con):
 
 def test_supplement_without_volume_does_not_fall_into_the_regular_series(con):
     assert resolve_exact(con, parse_scr("[1992] Supp. SCR 1")).case_id == "SUP"
+
+
+def test_year_then_volume_in_parentheses_is_a_plain_scr_citation():
+    from pramaan.citations.extract import extract
+
+    c = extract("W v. X, 1976 (2) SCR 100.")[0]
+    assert c.format == "SCR"
+    p = c.parsed
+    assert (p.reporter, p.year, p.volume, p.page) == ("SCR", 1976, 2, 100)

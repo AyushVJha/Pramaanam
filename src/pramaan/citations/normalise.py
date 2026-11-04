@@ -33,7 +33,15 @@ _SCC_ONLINE = re.compile(r"^(\d{4})\s+SCC\s+OnLine\s+SC\s+(\d{1,5})$", re.IGNORE
 _AIR = re.compile(r"^AIR\s+(\d{4})\s+SC\s+(\d{1,5})$")
 
 
+_SCR_YEAR_VOL = re.compile(r"^(\d{4})\s*\((\d{1,2})\)\s*S\.?\s?C\.?\s?R\.?\s+(\d{1,4})$", re.I)
+
+
 def parse_scr(raw: str) -> ParsedCitation | None:
+    alt = _SCR_YEAR_VOL.match(raw.strip())  # "1976 (2) SCR 100"
+    if alt:
+        return ParsedCitation(
+            reporter="SCR", year=int(alt[1]), volume=int(alt[2]), page=int(alt[3])
+        )
     m = _SCR.match(raw.strip())
     if not m:
         return None
