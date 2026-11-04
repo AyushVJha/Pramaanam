@@ -95,10 +95,11 @@ def check_citation(
     use_llm: bool = True,
     model: str | None = None,
     backend: Backend | None = None,
+    exclude_citing: str | None = None,  # benchmark use: hide the judgment that built the item
     **client_kw,
 ) -> CitationReport:
     base = {"raw": citation.raw, "case_name": citation.case_name}
-    resolution = resolve(con, citation)
+    resolution = resolve(con, citation, exclude_citing=exclude_citing)
 
     if resolution.case_id is None:
         if resolution.method == "ambiguous":

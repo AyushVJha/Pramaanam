@@ -474,3 +474,12 @@ Docling + full-page Tesseract on this laptop (4 workers, run at low priority): 3
 Profile of one 5-page judgment (laptop, 4 threads, docling timings): OCR 6.3 s, layout network 1.2 s, whole pipeline 6.6 s (stages overlap). OCR is Tesseract on CPU, so a GPU does not speed up the main cost.
 
 Candidate machine (specs as reported by the owner of the account, no access granted): 2 x AMD EPYC 7763, 128 physical cores, 1 TB RAM, one A100 80 GB shared with other jobs. If one core matches one laptop worker (not measured) and scaling is linear (optimistic), 32 workers is about 20 h and 64 workers about 10 h for the whole corpus. Not run: needs the owner's approval; first step would be a 50-page timing test at lowest priority, CPU only. Selective OCR (OCR only pages whose embedded text looks bad) could cut this further, but needs a page-quality flag that has not been built or validated, so no saving is claimed.
+
+## 18. End-to-end pipeline on the resolver benchmark, dev split (2026-11-05)
+
+`bench/eval_pipeline.py --split dev` (no AI check; output in logs/pipeline_dev.txt). 246 items, each hiding the evidence printed by the citing judgment itself.
+
+- VERIFIED 34, FALSE VERIFIED 0 (VERIFIED on a wrong case).
+- 185 items got the right case but only NEEDS_REVIEW: 137 were found by name only (no alias evidence left once the citing judgment is hidden) and 50 had a single witness. 22 true cases came out NOT_FOUND_IN_CORPUS, 2 wrong cases were NEEDS_REVIEW (not asserted), 3 got NAME_MISMATCH.
+- Caveat: hiding the citing judgment removes one witness from every alias, so this under-states how many a real draft would verify. The safety number (zero false VERIFIED) is the one this benchmark can support; the coverage number is a floor, not an estimate for real drafts.
+- Dev only. Test split not run.
