@@ -364,3 +364,17 @@ Supplement citations the reporter `SCR-SUPP` (DECISIONS.md). After rebuilding th
 - Unexplained: paragraphs went 478,691 to 478,709 (+18) in the rebuild. The text layer did not
   change, so this probably predates this fix (an earlier code change not rebuilt into the old
   database). Not investigated.
+
+**The one new wrong alias answer, traced (dev only).** "Basheer v. State of Kerala", (2004) 3 SCC 609.
+The held-out judgment says it is N.P. Basheer ([2004] 2 SCR 224). Another judgment (In Re: Section
+6A of the Citizenship Act, 2024) prints, in a footnote, "[2003] Supp. 1 SCR 580 : (2004) 3 SCC 609"
+for A. Mohammed Basheer, a different 2003 case. With the first judgment held out, that footnote was
+the only evidence, so the alias step answered with the 2003 case. Before the Supplement fix
+this footnote was not parsed as an anchor, which is why the error is new. Either the footnote or
+the first judgment prints a wrong parallel citation: the source itself is inconsistent, and I have
+not checked which one is right.
+Alias answers on dev by number of independent citing judgments backing the answer: 1 judgment:
+49 right, 1 wrong; 2 judgments: 15 right; 3 or more: 22 right. Tiny numbers, so no threshold or
+confidence was changed. What this does suggest for the verdict design: an alias-only answer backed
+by one judgment must not be reported as proof; it needs the case name and year to agree as well.
+Reproduce: scratchpad query described here (alias rows by `citing_case` count); not a committed script.
