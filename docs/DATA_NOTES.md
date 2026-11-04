@@ -278,3 +278,45 @@ We run no OCR of our own: PyMuPDF reads the text layer already inside each PDF. 
 **Fewer paragraphs in older judgments.** Median paragraphs per case: 1950s 12, 1960s 10, 1970s 7, 1980s 7, 1990s 5, 2000s 10, 2010s 13, 2020s 15. The 1990s figure is low. Not yet explained: either many of those judgments are short or not numbered, or the splitter merges text. A paragraph reference such as "para 23" is only checkable where the judgment's numbering was recovered.
 
 **Tables.** Not handled. Table cells arrive as flattened lines inside whatever paragraph surrounds them, so numbers in tables are unreliable for quote checks. Not measured: how many judgments contain tables that matter.
+
+## 15. Source audit: is the corpus complete? (measured 4 Nov 2026)
+
+Script: `scripts/audit_source.py` (writes `logs/audit_source.txt` and `logs/audit_gaps.csv`; both
+gitignored, so the numbers below are the record). Re-run it to reproduce.
+
+**What was checked**
+- 38,392 of 38,397 file names parse as `year_volume_start_end`. The start page equals the printed
+  SCR citation page in 5,000 of 5,000 cases checked.
+- 488 volumes. Page ranges tile the volumes almost completely: 31 gaps of more than 2 pages,
+  holding 1,019 pages. Share of pages inside big gaps is 0.0 to 0.1% per decade, except the 2020s
+  at 0.6% (largest: 2023 vol 10, pages 159-289; 2026 vol 8, pages 326-453).
+- 22 duplicate page ranges and 1 inverted range. Not yet investigated.
+
+**Neutral citation numbers (INSC), 2014 onward.** Before 2014 the numbers are contiguous because
+the dataset assigned them itself, so that range says nothing. From 2014 the numbers have holes:
+
+| year | highest | present | missing |
+|------|---------|---------|---------|
+| 2014 | 1046 | 763 | 27% |
+| 2016 | 1215 | 564 | 54% |
+| 2019 | 1415 | 1039 | 27% |
+| 2020 | 716 | 563 | 21% |
+| 2023 | 1093 | 851 | 22% |
+| 2025 | 1425 | 893 | 37% |
+| 2026 | 981 | 235 | 76% (year in progress) |
+
+One outlier: "2024 INSC 4354" (KOLKATA MUNICIPAL CORPORATION v. BIMAL KUMAR SHAH). The next
+highest 2024 number is 1100, so 4354 is probably a typo in the source. Left as is, flagged.
+
+**What this suggests (NOT verified)**
+The corpus looks like the Supreme Court Reports volumes, almost fully present, and not every
+judgment the Court ever delivered. Recent unreported judgments would then be largely absent. I
+have not checked this against an independent list, so it is a hypothesis.
+
+**Consequence for the product, whatever the cause**
+`NOT_FOUND_IN_CORPUS` must never be read as "fake". For 2014 onward, 20 to 55% of neutral numbers
+are simply not in this dataset. The report already says so; the corpus manifest (later step) must
+state coverage per year so a user can see it.
+
+**Not done yet:** classify each PDF as born-digital or scanned; investigate the duplicate and
+inverted ranges.
