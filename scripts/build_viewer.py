@@ -19,7 +19,7 @@ from pramaan.data.pdf_text import extract_raw_pages
 
 GT = DATA_DIR.parent / "bench" / "data" / "ground_truth"
 VIEW = GT / "viewer"
-DPI = 110
+DPI = 150
 
 
 def pick_pages(n: int) -> list[int]:
@@ -33,8 +33,11 @@ header{position:sticky;top:0;background:#fff;border-bottom:1px solid #ccc;
   padding:8px 16px;z-index:2}
 .page{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px;
   border-bottom:2px solid #bbb}
-.page img{width:100%;border:1px solid #999;background:#fff}
-textarea{width:100%;height:80vh;font:13px/1.4 ui-monospace,monospace}
+.page img{width:100%;border:1px solid #999;background:#fff;cursor:zoom-in}
+.page img.zoom{position:fixed;inset:0;z-index:9;width:auto;height:100vh;margin:auto;
+  cursor:zoom-out;box-shadow:0 0 0 100vmax rgba(0,0,0,.7)}
+.sticky{position:sticky;top:52px;align-self:start}
+textarea{width:100%;height:85vh;font:13px/1.4 ui-monospace,monospace}
 label{margin-right:14px}
 button{padding:6px 12px}
 @media(max-width:800px){.page{grid-template-columns:1fr}}
@@ -73,7 +76,7 @@ def case_page(path: str, pages: list[tuple[int, str, str]]) -> str:
     for page_no, img, text in pages:
         p = f"{page_no}"
         blocks.append(f"""<section class="page" data-page="{p}">
-<div><img src="{img}" alt="page {p}"></div>
+<div class="sticky"><img src="{img}" alt="page {p}" onclick="this.classList.toggle('zoom')"></div>
 <div>
 <p><b>Page {p}.</b> Edit the box until it matches the image exactly.
 <label><input type="checkbox" data-p="{p}" data-f="table"> table on page</label>
