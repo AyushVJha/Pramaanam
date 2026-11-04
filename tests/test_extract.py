@@ -13,3 +13,8 @@ def test_each_quote_goes_to_its_own_citation_not_a_neighbour():
         ("2023 INSC 12", "second quoted sentence of another judgment", None),
         ("2023 INSC 13", None, 7),
     ]
+
+
+def test_sentence_words_in_front_of_a_name_are_trimmed_not_fatal():
+    text = "The petitioner also relies on Maneka Gandhi v. Union of India, (1978) 1 SCC 999."
+    assert extract(text)[0].case_name == "Maneka Gandhi v. Union of India"

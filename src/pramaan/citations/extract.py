@@ -102,12 +102,30 @@ def _is_plausible_case_name(raw: str) -> bool:
     )
 
 
+def _trim_to_name(raw: str) -> tuple[int, str] | None:
+    """If the match has sentence words stuck on the front ("The petitioner relies on Maneka
+    Gandhi v. Union of India"), drop leading words until a plausible name starting with a
+    capital letter is left. Returns (characters dropped, name) or None."""
+    left = re.split(r"\s+vs?\.?\s+", raw, maxsplit=1, flags=re.IGNORECASE)[0]
+    words = list(re.finditer(r"\S+", left))
+    for w in words[1:]:
+        candidate = raw[w.start():]
+        if w.group(0)[0].isupper() and _is_plausible_case_name(candidate):
+            return w.start(), candidate
+    return None
+
+
 def _find_case_name_matches(text: str) -> list[tuple[int, int, str]]:
     out = []
     for m in CASE_NAME.finditer(text):
         raw = m.group(0).strip()
-        if _is_plausible_case_name(raw):
-            out.append((m.start(), m.end(), raw))
+        start = m.start()
+        if not _is_plausible_case_name(raw):
+            trimmed = _trim_to_name(raw)
+            if trimmed is None:
+                continue
+            start, raw = start + trimmed[0], trimmed[1]
+        out.append((start, m.end(), raw))
     return out
 
 

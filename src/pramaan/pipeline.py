@@ -192,10 +192,14 @@ def check_citation(
             )
 
     if not proven:
-        return CitationReport(
-            **found, status="NEEDS_REVIEW",
-            reason=f"Found, and no problem detected, but not proven to be the cited case. {weak}",
-        )
+        if resolution.method == "fuzzy" and citation.parsed is not None:
+            reason = (
+                "The citation number matches no judgment, but a judgment with a very similar "
+                "name exists (shown below). Check the number, or that this is the case meant."
+            )
+        else:
+            reason = f"Found, and no problem detected, but not proven to be the cited case. {weak}"
+        return CitationReport(**found, status="NEEDS_REVIEW", reason=reason)
     checked = (
         "The case exists, name and year match" + (", the quote is verbatim" if citation.quoted_text
                                                   else "") + ". "
