@@ -1,0 +1,8 @@
+# SITE_ADDRESS is ":80" (plain HTTP on the IP) or a hostname such as demo.example.com,
+# for which Caddy gets and renews an HTTPS certificate by itself.
+{$SITE_ADDRESS} {
+	reverse_proxy app:7860
+	request_body {
+		max_size 3MB
+	}
+}

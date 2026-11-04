@@ -1,0 +1,30 @@
+# Pramaan demo on one small VM. Needs: Docker + the compose plugin.
+# Copy this folder to the server, create deploy/.env (see DEPLOY_ORACLE.md), then:
+#   docker compose up -d --build
+services:
+  app:
+    build: ..
+    restart: unless-stopped
+    environment:
+      PRAMAAN_DB_URL: ${PRAMAAN_DB_URL}
+      PRAMAAN_DB_SHA256: ${PRAMAAN_DB_SHA256}
+    volumes:
+      - pramaan-data:/data        # the database lives here and survives restarts
+    expose:
+      - "7860"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - app
+volumes:
+  pramaan-data:
+  caddy-data:
