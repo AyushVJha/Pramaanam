@@ -29,7 +29,7 @@ NEGATIONS = {"not", "no", "never", "neither", "nor", "cannot", "without", "none"
 
 # A paragraph number at the start of the quote, or after a sentence end ("... class. 10. A taxing").
 _PARA_NUMBER = re.compile(r"^\s*\d{1,3}\.\s+|(?<=[.?!])\s+\d{1,3}\.\s+(?=[A-Z])")
-_ELLIPSIS = re.compile(r"\.{2,}|…|(?:\.\s){2,}\.")
+_ELLIPSIS = re.compile(r"\.{3,}|…|(?:\.\s){2,}\.")
 _WORD = re.compile(r"\w+")
 
 

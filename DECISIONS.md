@@ -242,3 +242,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** keep refusing to pick (fall through to fuzzy, which usually ended as NOT_FOUND_IN_CORPUS).
 - **Why:** found by reading the 24 in-corpus misses of the test run (Ramlal v. Rewa Coalfields, Century Spinning): one judgment had misread a pairing, which blocked a number that other judgments printed correctly. NOTE: this change was designed after looking at test failures, so it is checked on dev only and the test split was NOT re-run; the test numbers in README/DATA_NOTES 33 are those of the code before this change.
 - **Trade-off:** a wrong pairing that outnumbers the right one, with a name that fits it, would be chosen; VERIFIED still needs 2 witnesses and agreeing name and year. Dev: right case 97.6% -> 98.0%, VERIFIED 146 -> 150, false VERIFIED 0.
+
+## An ellipsis needs three dots, not two
+- **Choice:** the quote splitter treats "...", "…" and ". . ." as an omission, but not "..".
+- **Alternative:** two dots also count (the old rule).
+- **Why:** read after the test run: a spliced quote ended in scan debris containing "..", which was taken for an ellipsis and dropped, so only the real opening was checked and the changed ending went unnoticed (DATA_NOTES 33, item 3). Two dots are far more often debris or a typo than an omission mark.
+- **Trade-off:** a draft that really uses ".." as an omission mark now has its quote checked as one piece (likely NEEDS_REVIEW or MISQUOTE rather than a near match). Dev: splice 124/124 MISQUOTE (was 123 + 1), altered quotes VERIFIED 0 of 524, real quotes 124/124 VERIFIED. Test split not re-run (it motivated the change).

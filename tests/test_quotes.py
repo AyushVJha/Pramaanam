@@ -134,3 +134,16 @@ def test_paragraph_numbers_inside_a_quote_are_ignored():
     )
     r = check_quote_in_paragraphs(paras, quote)
     assert r.status in ("verbatim", "near_match")
+
+
+def test_two_dots_of_scan_debris_are_not_an_ellipsis():
+    from pramaan.checks.quotes import check_quote_in_paragraphs
+
+    text = "The ex-serviceman will get the benefit of such revision in respect of the pay scale."
+    paras = [(1, text)]
+    good = "The ex-serviceman will get the benefit of such revision"
+    junk = good + " ·- . ,. . - - .. '.,. 955"
+    assert check_quote_in_paragraphs(paras, good).status == "verbatim"
+    assert check_quote_in_paragraphs(paras, junk).status != "verbatim"
+    assert check_quote_in_paragraphs(paras, good + " .... in respect of the pay scale").status in (
+        "verbatim", "near_match")
