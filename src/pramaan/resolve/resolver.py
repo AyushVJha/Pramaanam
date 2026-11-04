@@ -37,7 +37,7 @@ MAX_ALTERNATIVES = 3
 DEFAULT_THRESHOLD = 0.85
 # If the runner-up scores within this of the winner, the name alone cannot tell them apart.
 TIE_MARGIN = 0.02
-_EXACT_METHOD = {"INSC": "neutral", "SCR": "reporter"}
+_EXACT_METHOD = {"INSC": "neutral", "SCR": "reporter", "SCR-SUPP": "reporter"}
 # Measured on held-out judgments: 99.0% of alias answers were right (DATA_NOTES.md section 13).
 ALIAS_CONFIDENCE = 0.99
 

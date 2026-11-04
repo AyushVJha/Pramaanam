@@ -176,3 +176,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** bake 1.3 GB into the image (slow builds and pushes, hits free-host size limits), or rebuild the database on the host (needs the 552 MB text layer and about 4 minutes).
 - **Trade-off:** free hosts wipe the disk on restart, so each cold start re-downloads. The rate limit is in memory and per process, and trusts X-Forwarded-For if the host sets it: a speed bump, not security.
 - **Not verified:** the Dockerfile has not been built, and no host has been tried.
+
+### SCR Supplement citations get their own reporter, `SCR-SUPP` (data fix)
+- **Choice:** `parse_scr` returns reporter `SCR-SUPP` (keeping year, volume, page) for citations with a "Supp" marker, in any of the forms `[1992] SUPP. 2 S.C.R. 1` (the dataset's own form), `[1992] Supp. (2) SCR 1`, `[1992] 2 Supp. SCR 1`. The resolver looks them up exactly like `SCR`, but only against `SCR-SUPP` rows. No schema change: `reporter` is a text column.
+- **Alternative:** add a `series` column to `case_citations` (a schema change, so it needs approval), or keep one `SCR` reporter and add "supp" to the volume.
+- **Why:** the Supplement series restarts its page numbers inside the same year and volume number as the regular series (22 clashing file-name pairs, DATA_NOTES 15). Before the fix the dataset's own Supplement form did not parse, so 7,641 cases (about 20%) had no SCR row, and a draft's "Supp. (2) SCR 1" lost its marker and volume and could match a regular-series case.
+- **Trade-off:** one more reporter value to remember in the code (`_EXACT_METHOD`); older databases need a rebuild to gain the rows.

@@ -348,3 +348,19 @@ Next: ask the maintainer, or check the portal's own description, before relying 
   start 973, end 972: a typo in the file name. Harmless, not corrected.
 - **5 cases have no PDF at all** (path is empty): 1996 (1), 1999 (2), 2023 (2). They have metadata
   only, so they can be found but not checked.
+
+**Supplement fix and its measured effect (4 Nov 2026, dev split only).** `parse_scr` now gives
+Supplement citations the reporter `SCR-SUPP` (DECISIONS.md). After rebuilding the database:
+- `case_citations` holds SCR 30,755 rows and SCR-SUPP 7,642 rows (before: SCR 30,755, none for
+  Supplement). Cases 38,397 unchanged. Alias evidence rows 2,506 to 2,800, because Supplement
+  parallel citations now count as anchors.
+- Resolver on dev: 222/246 correct (90.2%), 2 wrong-case. Before the fix: 223/246 (90.7%), 1
+  wrong-case. That is one item either way, within noise on 246 items. One new wrong answer is
+  alias-based ("Basheer v. State of Kerala", (2004) 3 SCC 609, answered with a 2003 case at
+  confidence 0.99). It was not tuned away and not yet investigated. The dev benchmark has no
+  Supplement-form items, so it cannot show the gain; the gain is that those 7,642 cases can now
+  be found by their SCR citation at all, which is not measured here.
+- Test split not re-run: it is spent once, at the end.
+- Unexplained: paragraphs went 478,691 to 478,709 (+18) in the rebuild. The text layer did not
+  change, so this probably predates this fix (an earlier code change not rebuilt into the old
+  database). Not investigated.

@@ -19,9 +19,13 @@ class ParsedCitation(BaseModel):
     page: int
 
 
+# The volume can come before "Supp" ("[1992] 2 Supp. SCR 1"), after it ("[1992] SUPP. 2 S.C.R. 1",
+# the dataset's own form) or in brackets after it ("[1992] Supp. (2) SCR 1").
 _SCR = re.compile(
-    r"^[\[\(]\s*(\d{4})\s*[\]\)]\s*(\d{1,2})?\s*(?:Supp\.?\s*)?(?:\(\d\)\s*)?"
-    r"S\.?\s?C\.?\s?R\.?\s+(\d{1,4})$"
+    r"^[\[\(]\s*(\d{4})\s*[\]\)]\s*(\d{1,2})?\s*"
+    r"(?:(supp)\.?\s*(?:\(?(\d{1,2})\)?\s*)?)?"
+    r"S\.?\s?C\.?\s?R\.?\s+(\d{1,4})$",
+    re.IGNORECASE,
 )
 _NEUTRAL = re.compile(r"^(\d{4})\s+INSC\s+(\d{1,5})$")
 _SCC = re.compile(r"^\(\s*(\d{4})\s*\)\s*(\d{1,2})\s+SCC\s+(\d{1,4})$")
@@ -33,9 +37,15 @@ def parse_scr(raw: str) -> ParsedCitation | None:
     m = _SCR.match(raw.strip())
     if not m:
         return None
-    year, volume, page = m.groups()
+    year, volume_before, supp, volume_after, page = m.groups()
+    volume = volume_after or volume_before
+    # The Supplement series restarts its page numbers inside the same year and volume number, so
+    # it must never be mixed with the regular series: it gets its own reporter name.
     return ParsedCitation(
-        reporter="SCR", year=int(year), volume=int(volume) if volume else None, page=int(page)
+        reporter="SCR-SUPP" if supp else "SCR",
+        year=int(year),
+        volume=int(volume) if volume else None,
+        page=int(page),
     )
 
 

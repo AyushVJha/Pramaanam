@@ -18,7 +18,8 @@ SCC_ONLINE = re.compile(r"\b(?:19|20)\d{2}\s+SCC\s+OnLine\s+SC\s+\d{1,5}\b", re.
 AIR = re.compile(r"\bAIR\s+(?:19|20)\d{2}\s+SC\s+\d{1,5}\b")
 
 SCR = re.compile(
-    r"[\[\(]\s*(?:19|20)\d{2}\s*[\]\)]\s*(?:\d{1,2}\s+)?(?:Supp\.?\s*)?(?:\(\d\)\s*)?"
+    r"[\[\(]\s*(?:19|20)\d{2}\s*[\]\)]\s*(?:\d{1,2}\s+)?"
+    r"(?:(?i:supp)\.?\s*(?:\(?\d{1,2}\)?\s*)?)?"
     r"S\.?\s?C\.?\s?R\.?\s+\d{1,4}\b"
 )
 
