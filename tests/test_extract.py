@@ -1,3 +1,4 @@
+from pramaan.citations.extract import extract
 
 
 def test_each_quote_goes_to_its_own_citation_not_a_neighbour():
