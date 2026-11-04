@@ -1,4 +1,4 @@
-"""Read a draft from disk as plain text: .txt / .md, or .docx (Word). I/O at the edge.
+"""Read a draft from disk as plain text: .txt / .md, .docx (Word) or .pdf with a text layer.
 
 For .docx the text comes out in document order: paragraphs and table cells as they appear.
 Footnotes and endnotes are read straight from the file's XML (python-docx does not expose them)
@@ -15,7 +15,7 @@ from docx import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
-SUPPORTED = {".txt", ".md", ".docx"}
+SUPPORTED = {".txt", ".md", ".docx", ".pdf"}
 
 
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -56,8 +56,27 @@ def _docx_text(path: Path) -> str:
     return "\n\n".join(p for p in parts if p.strip())
 
 
+def _pdf_text(path: Path) -> str:
+    """Text of a PDF draft, one paragraph per text block. Scanned PDFs (no text layer) are refused:
+    we do not OCR drafts, so reading them would silently check nothing."""
+    import pymupdf
+
+    parts: list[str] = []
+    with pymupdf.open(path) as doc:
+        for page in doc:
+            for block in page.get_text("blocks", sort=True):
+                if block[6] == 0:  # 0 = text block, 1 = image
+                    parts.append(" ".join(block[4].split()))
+    text = "\n\n".join(p for p in parts if p)
+    if not text.strip():
+        raise ValueError("This PDF has no text layer (a scan?). Export it from Word or paste text.")
+    return text
+
+
 def read_draft(path: Path) -> str:
     suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        return _pdf_text(path)
     if suffix == ".docx":
         return _docx_text(path)
     if suffix in SUPPORTED:

@@ -63,7 +63,7 @@ def test_docx_upload_works(db_path):
 
 def test_bad_inputs_are_clean_errors(db_path):
     c = TestClient(create_app(db_path))
-    assert upload(c, "d.pdf", b"%PDF").status_code == 400
+    assert upload(c, "d.pdf", b"%PDF").status_code == 400  # corrupt PDF
     assert upload(c, "d.docx", b"not a zip").status_code == 400
     assert upload(c, "d.txt", b"x" * (MAX_UPLOAD_BYTES + 1)).status_code == 413
     many = ("Ram Lal v. State, 1960 INSC 5. " * 70).encode()

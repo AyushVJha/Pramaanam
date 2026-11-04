@@ -53,7 +53,7 @@ footer{margin-top:2rem;font-size:.85rem;color:#555}</style></head><body>
 does the name match, are the quotes real, is the paragraph right.</p>
 <p class="note"><b>Preview.</b> %(disclaimer)s Accuracy is still being measured.</p>
 <form method="post" action="/report" enctype="multipart/form-data">
-<p><input type="file" name="draft" accept=".txt,.md,.docx" required></p>
+<p><input type="file" name="draft" accept=".txt,.md,.docx,.pdf" required></p>
 %(llm_box)s
 <p><button type="submit">Check citations</button></p></form>
 <p>Your file is read, checked and discarded. It is not stored. Word files: headers, footers

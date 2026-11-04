@@ -43,8 +43,8 @@ def test_merged_cell_is_not_repeated(tmp_path):
 
 
 def test_unsupported_type_is_a_clear_error(tmp_path):
-    f = tmp_path / "d.pdf"
-    f.write_bytes(b"%PDF")
+    f = tmp_path / "d.rtf"
+    f.write_bytes(b"{\\rtf1}")
     with pytest.raises(ValueError, match="Unsupported"):
         read_draft(f)
 
@@ -71,3 +71,20 @@ def test_footnote_citations_are_read_and_separators_skipped(tmp_path):
     text = read_draft(f)
     assert "SEPARATOR" not in text
     assert any(c.raw == "2020 INSC 5" for c in extract(text))
+
+
+def test_pdf_draft_text_is_read_and_scan_is_refused(tmp_path):
+    import pymupdf
+
+    doc = pymupdf.open()
+    doc.new_page().insert_text((72, 72), "Ram Lal v. State of Bihar, 1960 INSC 5, para 2.")
+    f = tmp_path / "d.pdf"
+    doc.save(str(f))
+    assert "1960 INSC 5" in read_draft(f)
+
+    blank = pymupdf.open()
+    blank.new_page()
+    g = tmp_path / "scan.pdf"
+    blank.save(str(g))
+    with pytest.raises(ValueError, match="no text layer"):
+        read_draft(g)
