@@ -79,3 +79,25 @@ def test_citing_itself_is_ignored(con):
     con.execute("INSERT INTO paragraphs VALUES ('C1', 1, 1, "
                 "'Ram Lal v. State of Bihar, (1960) 2 SCC 45 : [1960] 1 SCR 107')")
     assert build_aliases(con) == 2  # C1's own paragraph added nothing
+
+
+def _conflict(con):
+    build_aliases(con)
+    con.execute("UPDATE cases SET petitioner='Ram Lal', respondent='State of Bihar' WHERE cnr='C1'")
+    con.execute(
+        "INSERT INTO cases (cnr, title, petitioner, respondent, year, decision_date) "
+        "VALUES ('C4', 'Shyam Das v. Union of India', 'Shyam Das', 'Union of India', 1960, "
+        "'01-01-1960')"
+    )
+    con.execute("INSERT INTO citation_aliases VALUES ('SCC', 1960, 2, 45, 'C4', 'C2')")
+
+
+def test_conflicting_evidence_is_settled_by_name_when_that_case_has_more_witnesses(con):
+    _conflict(con)
+    r = resolve_alias(con, scc(), case_name="Ram Lal v. State of Bihar")
+    assert (r.case_id, r.witnesses) == ("C1", 2)
+
+
+def test_name_cannot_pick_the_case_with_fewer_witnesses(con):
+    _conflict(con)
+    assert resolve_alias(con, scc(), case_name="Shyam Das v. Union of India") is None

@@ -118,11 +118,26 @@ def resolve_exact(
     )
 
 
+def _alias_witnesses(
+    con: sqlite3.Connection, parsed: ParsedCitation, case_id: str, exclude_citing: str | None
+) -> int:
+    return con.execute(
+        "SELECT COUNT(DISTINCT citing_case) FROM citation_aliases "
+        "WHERE reporter = ? AND year = ? AND volume IS ? AND page = ? AND case_id = ? "
+        "AND citing_case != ?",
+        (parsed.reporter, parsed.year, parsed.volume, parsed.page, case_id, exclude_citing or ""),
+    ).fetchone()[0]
+
+
 def resolve_alias(
-    con: sqlite3.Connection, parsed: ParsedCitation, exclude_citing: str | None = None
+    con: sqlite3.Connection, parsed: ParsedCitation, exclude_citing: str | None = None,
+    case_name: str | None = None,
 ) -> Resolution | None:
     """Look an SCC / AIR number up in the alias table. None if unknown, or if the evidence
-    names more than one case (then we do not guess; the fuzzy step takes over).
+    names more than one case and we cannot choose safely (then the fuzzy step takes over).
+
+    When the evidence names several cases (one pairing in some judgment was misread), the draft's
+    name may pick one, but only if that case also has MORE witnesses than every other candidate.
 
     `exclude_citing` hides the evidence printed by one judgment, so a benchmark built from that
     judgment cannot be answered from its own text.
@@ -137,17 +152,25 @@ def resolve_alias(
         ).fetchall()
     except sqlite3.OperationalError:
         return None  # an older database without the alias table
-    if len(rows) != 1:
+    if not rows:
         return None
-    witnesses = con.execute(
-        "SELECT COUNT(DISTINCT citing_case) FROM citation_aliases "
-        "WHERE reporter = ? AND year = ? AND volume IS ? AND page = ? AND case_id = ? "
-        "AND citing_case != ?",
-        (parsed.reporter, parsed.year, parsed.volume, parsed.page, rows[0][0],
-         exclude_citing or ""),
-    ).fetchone()[0]
+    if len(rows) == 1:
+        case_id = rows[0][0]
+    else:
+        hits = [
+            Candidate(case_id=r[0], title="", year=0, score=1.0) for r in rows
+        ]
+        chosen = _only_name_match(con, hits, case_name)
+        if chosen is None:
+            return None
+        counts = {r[0]: _alias_witnesses(con, parsed, r[0], exclude_citing) for r in rows}
+        others = [n for c, n in counts.items() if c != chosen.case_id]
+        if counts[chosen.case_id] <= max(others):
+            return None
+        case_id = chosen.case_id
+    witnesses = _alias_witnesses(con, parsed, case_id, exclude_citing)
     return Resolution(
-        case_id=rows[0][0], method="alias", confidence=ALIAS_CONFIDENCE, witnesses=witnesses
+        case_id=case_id, method="alias", confidence=ALIAS_CONFIDENCE, witnesses=witnesses
     )
 
 
@@ -199,7 +222,7 @@ def resolve(
         exact = resolve_exact(con, citation.parsed, citation.case_name)
         if exact is not None:
             return exact
-        alias = resolve_alias(con, citation.parsed, exclude_citing)
+        alias = resolve_alias(con, citation.parsed, exclude_citing, citation.case_name)
         if alias is not None and alias.case_id != exclude_case:
             return alias
     return resolve_fuzzy(con, citation.case_name, year, threshold, exclude_case)

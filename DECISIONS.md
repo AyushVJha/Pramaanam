@@ -236,3 +236,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** a hand-made list of abbreviations; or leave acronyms to fuzzy matching (scored 0.1).
 - **Why:** real citations use acronyms and were landing in NEEDS_REVIEW. The rule needs no list and the letters must match exactly.
 - **Trade-off:** two different bodies with the same initials would match on name alone; VERIFIED still needs the proven number and year, so this only affects the name check. Dev: VERIFIED 144 -> 146, false VERIFIED 0.
+
+## Conflicting alias evidence may be settled by the draft's name, with more witnesses
+- **Choice:** when an SCC/AIR number is printed next to more than one case in the corpus, `resolve_alias` picks a case only if the draft's name clearly fits exactly that one (same rule as shared neutral numbers) AND it has more witnesses than every other candidate.
+- **Alternative:** keep refusing to pick (fall through to fuzzy, which usually ended as NOT_FOUND_IN_CORPUS).
+- **Why:** found by reading the 24 in-corpus misses of the test run (Ramlal v. Rewa Coalfields, Century Spinning): one judgment had misread a pairing, which blocked a number that other judgments printed correctly. NOTE: this change was designed after looking at test failures, so it is checked on dev only and the test split was NOT re-run; the test numbers in README/DATA_NOTES 33 are those of the code before this change.
+- **Trade-off:** a wrong pairing that outnumbers the right one, with a name that fits it, would be chosen; VERIFIED still needs 2 witnesses and agreeing name and year. Dev: right case 97.6% -> 98.0%, VERIFIED 146 -> 150, false VERIFIED 0.

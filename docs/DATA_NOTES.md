@@ -605,3 +605,7 @@ Read by hand after the run (analysis only):
 4. **24 in-corpus items called NOT_FOUND_IN_CORPUS** and the paragraph check (159/275 on real quotes) were not read item by item: not analysed.
 
 What this does not show: how real lawyers' drafts will fare. Same caveat as dev.
+
+### 33a. The 24 in-corpus misses, read (2026-11-05)
+
+Every one of the 24 is an SCC / AIR / SCC OnLine number. Causes: (1) 16 have only one witness in the corpus: the citing judgment itself, which the benchmark hides on purpose, so "not proven" is the designed answer; (2) 5 are SCC OnLine numbers or numbers with no alias row at all (SCC OnLine aliases are not built: not measured how many there are); (3) 3 had conflicting alias evidence (e.g. AIR 1962 SC 361: Ramlal v. Rewa Coalfields 3 witnesses, one other case 1 witness) and were refused. The third kind is fixable and was changed after reading (see DECISIONS.md): dev only, test not re-run. The 24 are therefore the pre-change test numbers; a later test run would need a new fresh split to mean anything.
