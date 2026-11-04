@@ -6,7 +6,7 @@ appear in it, at the paragraph cited? It reports evidence, never a verdict on th
 [SPEC.md](SPEC.md) for the plan and [docs/CLAIM_CONTRACT.md](docs/CLAIM_CONTRACT.md) for exactly what each
 status promises.
 
-**Status: working prototype, not a product.** Dev-split results only; the test split has not been run.
+**Status: working prototype, not a product.** The test split was run once on 2026-11-05 (results below); nothing was changed afterwards.
 
 ## What you get
 
@@ -32,6 +32,18 @@ status promises.
 The benchmarks use synthetic alterations of real quotes and citations printed in real judgments, so
 they show the checks behave as designed, not how real lawyers' drafts will fare. Coverage numbers
 (146 VERIFIED of 246) are a floor: the benchmark hides the evidence the citing judgment itself printed.
+
+## Results (test split, run once on 2026-11-05)
+
+Output kept in `docs/TEST_RUN_2026-11-05.txt`. Thresholds were fixed on dev before this run and were not changed after it.
+
+| Check | Result |
+|---|---|
+| Find the right case (667 items, `bench/eval_resolve.py`) | 95.8% right case, 0.4% wrong case (3), the rest missed or ambiguous |
+| Whole pipeline on those items, AI check off | 360 VERIFIED; the benchmark counts 1 of them as on a wrong case, but its label looks wrong (below); 24 items the benchmark says are in the corpus came out NOT_FOUND_IN_CORPUS |
+| Whole pipeline on 1,991 quote items | 275 of 275 real quotes VERIFIED; 2 of 1,166 altered or invented quotes VERIFIED (both explained below); 275 of 275 invented quotes MISQUOTE |
+
+The 2 "altered quotes VERIFIED" and the 1 "wrong case" were read by hand and are recorded in DATA_NOTES section 33. They are reported here as the benchmark counts them; no label or code was changed to fix them.
 
 ## Try it
 
@@ -59,7 +71,7 @@ Drafts can be .txt, .md, .docx (footnotes included) or a PDF with a text layer. 
 - **Not checked:** the legal argument; "supra", "ibid" and "id."; tables and footnotes inside judgments;
   SCC sub-series (Cri, L&S), SCALE and JT citations; scanned PDF drafts; names typed in lowercase.
 - **Names.** Names sharing a common word ("Mohan Lal Sharma" / "Mohan Das") can still pass.
-- **Not run:** the test split, the Docker image (no Docker on the dev machine), any public deployment.
+- **Not run:** the Docker image (no Docker on the dev machine), any public deployment.
 
 ## Data and credit
 

@@ -1,0 +1,58 @@
+### bench/eval_resolve.py --split test
+threshold 0.85   items 667
+format           n       correct    wrong_case        missed     ambiguous  correct_none   false_match
+AIR            195           182             0            13             0             0             0
+SCC            457           445             3             8             1             0             0
+SCC_ONLINE      15            12             0             3             0             0             0
+
+in-corpus items: 667  correct 639 (95.8%)  wrong case 3 (0.4%)
+(8 items with an unmatched anchor number are not scored)
+### bench/eval_quotes.py --split test
+threshold 85.0   items 1991
+
+kind                          n  right status   what it was called
+invented                    275        100.0%   not_found 275
+negation                    226         99.6%   near_match 225, verbatim 1
+number                      117        100.0%   near_match 117
+one_word                    274        100.0%   near_match 274
+real                        275        100.0%   verbatim 275
+real_wrong_para_adjacent    275        100.0%   verbatim 275
+real_wrong_para_far         275        100.0%   verbatim 275
+splice                      274         98.9%   not_found 271, near_match 2, verbatim 1
+
+altered quotes reported verbatim: 2 of 1166
+negation flag raised: 225 of 226
+number flag raised: 117 of 117
+paragraph check on real: 159 of 275 right
+paragraph check on real_wrong_para_adjacent: 159 of 275 right
+paragraph check on real_wrong_para_far: 158 of 275 right
+
+1991 checks in 9 s
+### bench/eval_pipeline.py --split test
+split test: 667 items, AI support check off
+
+in_corpus      NEEDS_REVIEW         WRONG case      3
+in_corpus      NEEDS_REVIEW         right case    280
+in_corpus      NOT_FOUND_IN_CORPUS  WRONG case     24
+in_corpus      VERIFIED             WRONG case      1
+in_corpus      VERIFIED             right case    359
+
+Why NEEDS_REVIEW: {'method fuzzy': 143, 'alias, 1 witness(es)': 113, 'alias, 25 witness(es)': 3, 'alias, 5 witness(es)': 4, 'alias, 4 witness(es)': 2, 'alias, 9 witness(es)': 2, 'alias, 23 witness(es)': 1, 'alias, 26 witness(es)': 1, 'alias, 7 witness(es)': 2, 'alias, 2 witness(es)': 3, 'alias, 6 witness(es)': 3, 'alias, 11 witness(es)': 1, 'method ambiguous': 1, 'alias, 3 witness(es)': 3, 'alias, 8 witness(es)': 1}
+
+VERIFIED: 360; FALSE VERIFIED: 1
+   ('Madhukar D. Shende v. Tarabai Aba Shedage', '(2002) 2 SCC 85', 'MADHUKAR D. SHENDE versus TARABAI ABA SHEDAGE')
+### bench/eval_pipeline_quotes.py --split test
+split test: 1991 scored, 0 skipped
+
+invented                   MISQUOTE 275
+negation                   NEEDS_REVIEW 225, VERIFIED 1
+number                     NEEDS_REVIEW 117
+one_word                   LOW_FIDELITY_SOURCE 1, NEEDS_REVIEW 273
+real                       VERIFIED 275
+real_wrong_para_adjacent   VERIFIED 275
+real_wrong_para_far        VERIFIED 117, WRONG_PARAGRAPH 158
+splice                     MISQUOTE 271, NEEDS_REVIEW 2, VERIFIED 1
+
+ALTERED/INVENTED QUOTES VERIFIED: 2
+   ('negation', 'As regards the first part, the scope of reference is, to find out from the repor')
+   ('splice', "Paragraph 3.8 also ' provides that if in the interregnum any re\\ision of pay sca")
