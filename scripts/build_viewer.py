@@ -6,11 +6,22 @@ the image, and ticks flags (table on page / footnotes on page / page unreadable)
 the browser and saved with the "Download" button as bench/data/ground_truth/human/<path>.json.
 
 Open bench/data/ground_truth/viewer/index.html in a browser. No server, no internet needed.
-Usage: uv run python scripts/build_viewer.py
+
+Two modes:
+  default : 3 pages per judgment (first, middle, last), text box pre-filled with the text
+            already embedded in the PDF.
+  --small : 5 judgments per decade, ONE page each (40 pages), box pre-filled with Tesseract
+            output. Written to viewer_small/. The pre-fill engine is recorded in each downloaded
+            file ("prefill"), because pre-filling favours that engine when scores are compared.
+Usage: uv run python scripts/build_viewer.py [--small]
 """
 
+import argparse
 import html
 import json
+import subprocess
+import tempfile
+from pathlib import Path
 
 import pymupdf
 
@@ -20,6 +31,32 @@ from pramaan.data.pdf_text import extract_raw_pages
 GT = DATA_DIR.parent / "bench" / "data" / "ground_truth"
 VIEW = GT / "viewer"
 DPI = 150
+
+
+def tesseract_text(page: pymupdf.Page) -> str:
+    """OCR one page with the installed Tesseract (300 dpi, page segmentation mode 4)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        png = Path(tmp) / "p.png"
+        page.get_pixmap(dpi=300).save(png)
+        subprocess.run(
+            ["tesseract", str(png), str(Path(tmp) / "out"), "--psm", "4", "-l", "eng"],
+            check=True, capture_output=True,
+        )
+        return (Path(tmp) / "out.txt").read_text(encoding="utf-8")
+
+
+def small_sample(cases: list[dict], per_decade: int = 5) -> list[tuple[dict, str]]:
+    """5 judgments per decade, each with one page position, cycling first/middle/last."""
+    positions = ["first", "middle", "last", "middle", "first"]
+    chosen = []
+    for decade in sorted({c["decade"] for c in cases}):
+        for i, c in enumerate([c for c in cases if c["decade"] == decade][:per_decade]):
+            chosen.append((c, positions[i % len(positions)]))
+    return chosen
+
+
+def page_for(position: str, n: int) -> int:
+    return {"first": 1, "middle": (n + 1) // 2, "last": n}[position]
 
 
 def pick_pages(n: int) -> list[int]:
@@ -63,7 +100,8 @@ function download() {
             has_footnotes: get("foot").checked, unreadable: get("bad").checked,
             checked: get("done").checked};
   });
-  const blob = new Blob([JSON.stringify({path: document.body.dataset.path, pages}, null, 1)],
+  const blob = new Blob([JSON.stringify({path: document.body.dataset.path,
+                                         prefill: document.body.dataset.prefill, pages}, null, 1)],
                         {type: "application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = document.body.dataset.path + ".json"; a.click();
@@ -71,7 +109,7 @@ function download() {
 """
 
 
-def case_page(path: str, pages: list[tuple[int, str, str]]) -> str:
+def case_page(path: str, pages: list[tuple[int, str, str]], prefill: str) -> str:
     blocks = []
     for page_no, img, text in pages:
         p = f"{page_no}"
@@ -87,7 +125,8 @@ def case_page(path: str, pages: list[tuple[int, str, str]]) -> str:
 </div></section>""")
     return (
         f"<!doctype html><meta charset=utf-8><title>{html.escape(path)}</title>"
-        f"<style>{PAGE_CSS}</style><body data-path=\"{html.escape(path)}\">"
+        f"<style>{PAGE_CSS}</style><body data-path=\"{html.escape(path)}\" "
+        f"data-prefill=\"{html.escape(prefill)}\">"
         f"<header><a href=\"index.html\">&larr; all judgments</a> &nbsp; <b>{html.escape(path)}</b>"
         f" &nbsp; <button onclick=\"download()\">Download my corrections</button></header>"
         + "".join(blocks) + f"<script>{PAGE_JS}</script></body>"
@@ -95,36 +134,45 @@ def case_page(path: str, pages: list[tuple[int, str, str]]) -> str:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--small", action="store_true", help="40 pages, Tesseract pre-fill")
+    args = ap.parse_args()
+    view = GT / ("viewer_small" if args.small else "viewer")
+    prefill = "tesseract-5.5.2-psm4" if args.small else "pdf-embedded-layer"
     cases = json.loads((GT / "sample.json").read_text())["cases"]
-    (VIEW / "img").mkdir(parents=True, exist_ok=True)
+    plan = small_sample(cases) if args.small else [(c, None) for c in cases]
+    (view / "img").mkdir(parents=True, exist_ok=True)
     rows = []
-    for c in cases:
+    for c, position in plan:
         path = c["path"]
         pdf = GT / "pdfs" / f"{path}_EN.pdf"
         if not pdf.exists():
             continue
-        raw = {p.page_no: p.text for p in extract_raw_pages(pdf.read_bytes())}
         doc = pymupdf.open(pdf)
+        raw = {p.page_no: p.text for p in extract_raw_pages(pdf.read_bytes())}
+        wanted = [page_for(position, len(doc))] if position else pick_pages(len(doc))
         pages = []
-        for n in pick_pages(len(doc)):
+        for n in wanted:
             img = f"img/{path}_p{n}.png"
-            doc[n - 1].get_pixmap(dpi=DPI).save(VIEW / img)
-            pages.append((n, img, raw.get(n, "")))
+            doc[n - 1].get_pixmap(dpi=DPI).save(view / img)
+            text = tesseract_text(doc[n - 1]) if args.small else raw.get(n, "")
+            pages.append((n, img, text))
         doc.close()
-        (VIEW / f"{path}.html").write_text(case_page(path, pages), encoding="utf-8")
-        rows.append((path, c["decade"], c["band"], [n for n, _, _ in pages]))
+        (view / f"{path}.html").write_text(case_page(path, pages, prefill), encoding="utf-8")
+        rows.append((path, c["decade"], c["band"], wanted))
     items = "".join(
         f'<li><a href="{html.escape(p)}.html">{html.escape(p)}</a> &mdash; {d}s, {b}, '
         f"pages {', '.join(map(str, pg))}</li>"
         for p, d, b, pg in rows
     )
-    (VIEW / "index.html").write_text(
+    (view / "index.html").write_text(
         f"<!doctype html><meta charset=utf-8><title>Pramaan text check</title>"
         f"<style>{PAGE_CSS}li{{margin:6px 0}}</style><body><header><b>Judgments to check "
-        f"({len(rows)})</b></header><ol style='padding:16px 40px'>{items}</ol></body>",
+        f"({len(rows)}). Text box pre-filled with: {prefill}</b></header>"
+        f"<ol style='padding:16px 40px'>{items}</ol></body>",
         encoding="utf-8",
     )
-    print(f"built {len(rows)} judgment pages -> {VIEW / 'index.html'}")
+    print(f"built {len(rows)} judgment pages ({prefill}) -> {view / 'index.html'}")
 
 
 if __name__ == "__main__":
