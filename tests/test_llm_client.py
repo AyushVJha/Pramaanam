@@ -73,6 +73,7 @@ def test_ollama_backend_sends_chat_request_and_reads_counts(monkeypatch):
     out = OllamaBackend("http://x:1").create(model="m", system="s", prompt="p", max_tokens=50)
     assert (out.text, out.input_tokens, out.output_tokens) == ('{"a": 1}', 12, 3)
     assert seen["url"] == "http://x:1/api/chat"
+    assert seen["body"]["think"] is False
     assert seen["body"]["format"] == "json" and seen["body"]["options"]["temperature"] == 0
 
 

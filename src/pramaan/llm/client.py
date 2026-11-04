@@ -100,6 +100,7 @@ class OllamaBackend:
             "model": model,
             "stream": False,
             "format": "json",  # makes the model emit valid JSON; we still validate it ourselves
+            "think": False,  # models with a thinking mode (Qwen3) otherwise spend the budget on it
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
