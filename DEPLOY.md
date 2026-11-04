@@ -46,5 +46,5 @@ Not measured: sustained load on a small host, behaviour behind a real proxy.
 ## Before it goes public
 1. Resolver test split run once, README numbers final.
 2. The page says "Preview" and states that accuracy is still being measured.
-3. A real draft tested end to end, including footnotes from a file saved by Word.
+3. A real draft tested end to end, including footnotes from a file saved by Word. Done in part (2026-11-05): a .docx built with python-docx plus a hand-written footnotes part went through the running app with the full database: 2 VERIFIED, 1 not found, and the footnote citation was read (not found, as intended). NOT done: a file actually saved by Word, and a lawyer's real draft.
 4. Free-host terms checked: Hugging Face Docker Spaces may need a paid plan.
