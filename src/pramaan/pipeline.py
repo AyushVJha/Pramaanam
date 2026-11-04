@@ -120,19 +120,24 @@ def check_citation(
              "case_year": year, "case_proven": proven}
     weak = "" if proven else _weak_reason(resolution)
 
-    def warn(status: Status, reason: str) -> CitationReport:
-        """A negative finding. Only asserted for a proven case; otherwise a person must look."""
-        if proven:
+    def warn(status: Status, reason: str, linked: bool = True, what: str = "") -> CitationReport:
+        """A negative finding. Only asserted when the case is proven by its number AND the
+        draft's name / quote is clearly tied to this citation; otherwise a person must look."""
+        if proven and linked:
             return CitationReport(**found, status=status, reason=reason)
+        why = weak if not proven else (
+            f"It is not clear that the {what} in the draft belongs to this citation "
+            "(a footnote number or a long stretch of text sits between them)."
+        )
         return CitationReport(
-            **found, status="NEEDS_REVIEW", reason=f"Possible {status}: {reason} {weak}"
+            **found, status="NEEDS_REVIEW", reason=f"Possible {status}: {reason} {why}"
         )
 
     draft_year = citation.parsed.year if citation.parsed else None
     identity = check_identity(con, case_id, citation.case_name, draft_year)
     found["identity"] = identity
     if identity.verdict == "name_mismatch":
-        return warn("NAME_MISMATCH", identity.explanation)
+        return warn("NAME_MISMATCH", identity.explanation, citation.name_tight, "case name")
     if identity.verdict in ("year_mismatch", "name_partial"):
         return CitationReport(**found, status="NEEDS_REVIEW", reason=identity.explanation)
 
@@ -149,7 +154,10 @@ def check_citation(
                     "compare with the printed page.",
                 )
             note = " (checked in two independent readings)" if other is not None else ""
-            return warn("MISQUOTE", f"The quoted words were not found in the judgment{note}.")
+            return warn(
+                "MISQUOTE", f"The quoted words were not found in the judgment{note}.",
+                citation.quote_tight, "quotation",
+            )
         if quote.status == "near_match":
             changes = "; ".join(quote.changes) or "wording differs slightly"
             if quote.noise_like and not quote.flags:
@@ -167,7 +175,9 @@ def check_citation(
             paragraph = check_paragraph(citation.para_ref, quote)
             found["paragraph"] = paragraph
             if paragraph.status == "wrong_paragraph":
-                return warn("WRONG_PARAGRAPH", paragraph.explanation)
+                return warn(
+                    "WRONG_PARAGRAPH", paragraph.explanation, citation.quote_tight, "quotation"
+                )
 
     if use_llm:
         support = check_support(

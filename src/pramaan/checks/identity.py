@@ -13,6 +13,10 @@ from pramaan.resolve.names import DECISION_YEAR_SQL, party_similarity, split_par
 
 # Starting value only. Tuned on the dev set and never on test (CLAUDE.md hard rule).
 NAME_MATCH_THRESHOLD = 0.7
+# Below this the name is called a mismatch (an accusation). Between this and the match bar the
+# result is name_partial ("check the name"): abbreviations ("Assn.", "RBI") land there.
+# Dev check (DATA_NOTES 25): 3 of 246 correct draft names fall below 0.5; 17 fall below 0.7.
+NAME_MISMATCH_BELOW = 0.5
 # Each party must fit at least this well for a full "match". The average alone lets
 # "Raja Ram v. Union of India" pass for "Bhule Ram v. Union of India" (DATA_NOTES 23).
 # Chosen on dev (resolve_dev gold cases), never on test.
@@ -52,12 +56,15 @@ def compare_identity(
     """Pure comparison. Year is judged only when the name matched, so the reason is clear."""
     score = name_score(draft_name, petitioner, respondent) if draft_name else None
     if score is not None and score < threshold:
+        text = (
+            f"The citation points to '{petitioner} v. {respondent}', "
+            f"not '{draft_name}' (name similarity {score:.2f})."
+        )
+        if score < NAME_MISMATCH_BELOW:
+            return IdentityResult(verdict="name_mismatch", name_score=score, explanation=text)
         return IdentityResult(
-            verdict="name_mismatch", name_score=score,
-            explanation=(
-                f"The citation points to '{petitioner} v. {respondent}', "
-                f"not '{draft_name}' (name similarity {score:.2f})."
-            ),
+            verdict="name_partial", name_score=score,
+            explanation=text + " The names are alike but not the same; check for an abbreviation.",
         )
     both = party_scores(draft_name, petitioner, respondent) if draft_name else None
     if both is not None and min(both) < PARTY_MIN:

@@ -163,3 +163,17 @@ def test_second_reading_is_none_without_a_layout_store(con, tmp_path):
 
     con.execute("UPDATE cases SET pdf_path = '1960_1_1_2_EN.pdf' WHERE cnr = 'C1'")
     assert second_reading(con, "C1", "Anticipatory bail may be granted", tmp_path) is None
+
+
+def test_loosely_linked_quote_cannot_accuse(con, tmp_path):
+    c = cit(quote="Bail is a fundamental and absolute right of every accused")
+    c.quote_tight = False
+    r = run(con, c, tmp=tmp_path)
+    assert r.status == "NEEDS_REVIEW" and "Possible MISQUOTE" in r.reason
+    assert "belongs to this citation" in r.reason
+
+
+def test_loosely_linked_name_cannot_accuse(con, tmp_path):
+    c = cit(name="Totally Different v. Other Person")
+    c.name_tight = False
+    assert run(con, c, tmp=tmp_path).status == "NEEDS_REVIEW"

@@ -20,12 +20,13 @@ def test_year_before_the_decision_is_a_mismatch():
 
 def test_right_number_wrong_name_is_flagged():
     r = _c("Maneka Gandhi v. Union of India", 2000)
-    assert r.verdict == "name_mismatch"
+    assert r.verdict == "name_partial"  # shared respondent: flagged for review, not accused
     assert "OM KUMAR" in r.explanation
+    assert _c("Totally Unlike v. Someone Else", 2000).verdict == "name_mismatch"
 
 
 def test_name_mismatch_wins_over_year():
-    assert _c("Maneka Gandhi v. Union of India", 1990).verdict == "name_mismatch"
+    assert _c("Totally Unlike v. Someone Else", 1990).verdict == "name_mismatch"
 
 
 def test_no_name_checks_year_only():

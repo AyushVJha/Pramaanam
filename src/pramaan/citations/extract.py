@@ -17,6 +17,7 @@ from pramaan.citations.patterns import CASE_NAME, STRUCTURED
 # How far back from a structured citation to look for an attached case name, e.g.
 # "Bhanu Kumar Jain vs. Archana Kumar, AIR 2005 SC 626" — the name precedes the citation.
 _CASE_NAME_PROXIMITY = 40
+_QUOTE_TIGHT_GAP = 100  # characters between a quote and its citation
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
 _QUOTE = re.compile(r"[\"“]([^\"“”]{15,}?)[\"”]")
@@ -46,6 +47,10 @@ class Citation(BaseModel):
     proposition: str
     quoted_text: str | None = None
     para_ref: int | None = None
+    # How sure we are that the name / quote belongs to THIS citation. Loose links (a footnote
+    # number or a whole sentence in between) are fine for a tick but too weak for an accusation.
+    name_tight: bool = True
+    quote_tight: bool = True
 
 
 def _find_structured_matches(text: str) -> list[tuple[int, int, str, str]]:
@@ -131,9 +136,9 @@ def _find_case_name_matches(text: str) -> list[tuple[int, int, str]]:
 
 def _attach_case_names(
     structured: list[tuple[int, int, str, str]], case_names: list[tuple[int, int, str]]
-) -> tuple[dict[int, str], set[int]]:
+) -> tuple[dict[int, tuple[str, int]], set[int]]:
     """Map each structured match's index to a preceding case name, if close enough."""
-    attached: dict[int, str] = {}
+    attached: dict[int, tuple[str, int]] = {}  # index -> (name, where the name ends)
     used: set[int] = set()
     for i, (start, _end, _fmt, _raw) in enumerate(structured):
         best = None
@@ -144,7 +149,7 @@ def _attach_case_names(
             if 0 <= gap <= _CASE_NAME_PROXIMITY:
                 best = (j, name)
         if best:
-            attached[i] = _clean_case_name(best[1])
+            attached[i] = (_clean_case_name(best[1]), case_names[best[0]][1])
             used.add(best[0])
     return attached, used
 
@@ -180,6 +185,17 @@ def _assign_nearest(
     return owner
 
 
+def _name_is_tight(text: str, name_end: int, cite_start: int) -> bool:
+    """No digits between the name and the citation: a digit there is usually a footnote marker,
+    and then the name may belong to the footnote number, not to this citation."""
+    return not re.search(r"\d", text[name_end:cite_start])
+
+
+def _quote_is_tight(match: re.Match, span: tuple[int, int]) -> bool:
+    gap = max(0, match.start() - span[1], span[0] - match.end())
+    return gap <= _QUOTE_TIGHT_GAP
+
+
 def extract(text: str) -> list[Citation]:
     """Find every citation in `text` — structured formats plus standalone case names."""
     structured = _find_structured_matches(text)
@@ -207,7 +223,10 @@ def extract(text: str) -> list[Citation]:
                 span=span,
                 format=fmt,
                 parsed=parse_citation(raw, fmt),
-                case_name=attached_names.get(i),
+                case_name=attached_names[i][0] if i in attached_names else None,
+                name_tight=i not in attached_names
+                or _name_is_tight(text, attached_names[i][1], start),
+                quote_tight=i not in quotes or _quote_is_tight(quotes[i], span),
                 proposition=_proposition(text, span),
                 quoted_text=quote_of(i),
                 para_ref=para_of(i),
@@ -227,6 +246,7 @@ def extract(text: str) -> list[Citation]:
                 span=span,
                 format="CASE_NAME",
                 case_name=cleaned_name,
+                quote_tight=idx not in quotes or _quote_is_tight(quotes[idx], span),
                 proposition=_proposition(text, span),
                 quoted_text=quote_of(idx),
                 para_ref=para_of(idx),
