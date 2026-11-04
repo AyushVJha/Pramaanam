@@ -31,7 +31,9 @@ Use ONE worker process (`uvicorn ... --workers 1`, the default). The rate limite
 memory, so several workers would each allow the full number of uploads. Checks run in a thread pool,
 so a slow request does not block the others. The app opens the database read-only, one connection
 per request. Expect about 1.9 GB of disk for the database plus the 439 MB download while unpacking.
-Not measured: memory use of the running app, sustained load, behaviour behind a real proxy.
+Measured 2026-11-05 (laptop, full database, one worker): about 280 MB resident memory after start and
+284 MB after 8 requests; a request with the demo mixed draft took about 50 ms with the AI check off.
+Not measured: sustained load on a small host, behaviour behind a real proxy.
 
 ## Settings
 | Variable | Meaning |
