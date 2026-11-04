@@ -8,11 +8,11 @@ You are helping Ayush build **Pramaan**: an open benchmark and verifier for cita
 - At the end of each milestone, append five likely interview questions with short answers about that milestone to `docs/DEFENSE.md`.
 
 ## How to work
-1. **Plan first.** For any task larger than a small fix, propose a short plan (files, functions, tests) and wait for approval.
+1. **Plan briefly, then proceed.** For any task larger than a small fix, write a short plan (files, functions, tests) and carry on without waiting for approval (Ayush's instruction, 4 Nov 2026). Stop and ask only for outward-facing or irreversible actions: posting publicly, hosting, buying domains, spending money, the company server, the test split, the employment IP clause.
 2. **One milestone at a time** (SPEC.md §8). Don't start the next milestone's work early.
 3. **Small steps.** Write a function, write its test, run it, then move on. Keep diffs reviewable.
 4. **Run things.** After changes, run `make test` (or the relevant pytest) and `ruff check`. Never claim something works without running it.
-5. **Ask before** adding a dependency, changing the DB schema, or changing the benchmark labels or splits.
+5. **Log, don't block**, when adding a dependency or changing the DB schema: choose the best option, add a DECISIONS.md entry (choice, alternative, why, trade-off), keep it reversible. Do not change the benchmark splits or the human-verified labels without a recorded reason.
 6. **Commit** at each green step with a clear message (`feat(resolver): fuzzy party-name match with trigram candidates`).
 
 ## Hard rules
