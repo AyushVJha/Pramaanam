@@ -497,3 +497,7 @@ Candidate machine (specs as reported by the owner of the account, no access gran
 - Wrong paragraph far away: 124 of 124 WRONG_PARAGRAPH. Adjacent paragraph (off by one): 123 VERIFIED, 1 WRONG_PARAGRAPH, by design (page breaks shift numbers by one).
 - Found by this run: a name like "P. V. Sivarajan v. Union of India" was split at the initial "V." and flagged NAME_MISMATCH on the case's own title (7 items). `split_parties` now skips a "v." that follows a one-letter initial. Resolver dev and pipeline dev numbers unchanged after the fix.
 - The quote items are synthetic alterations of real quotes, so this shows the checks work as designed; it is not an estimate of real-world lawyer drafts.
+
+## 21. Citation formats the extractor does not parse (2026-11-05)
+
+Checked on a made-up line of 12 citations. Recognised: SCC, SCC OnLine, AIR, neutral (INSC), SCR including Supplement forms, and now "1976 (2) SCR 100". NOT parsed as a citation number (they fall back to the case name, so the best possible status is NEEDS_REVIEW, never VERIFIED): "(2010) 3 SCC (Cri) 55" and other SCC sub-series, "1995 Supp (3) SCC 100", "2023 (4) SCALE 12", "JT 2005 (3) SC 10". SCC sub-series pages are separate numbering from the main SCC, so mapping them onto the SCC alias table would be wrong. Not measured on real drafts.
