@@ -80,3 +80,16 @@ def test_llm_is_refused_unless_the_operator_enabled_it(db_path):
 def test_missing_database_is_503(tmp_path):
     c = TestClient(create_app(tmp_path / "nope.db"))
     assert upload(c, "d.txt", b"1960 INSC 5").status_code == 503
+
+
+def test_page_assets_are_served_with_a_strict_security_policy(db_path):
+    c = TestClient(create_app(db_path))
+    page = c.get("/")
+    assert "{{" not in page.text  # every placeholder was filled
+    assert "1" in page.text and "Try a sample draft" in page.text
+    csp = page.headers["content-security-policy"]
+    assert "default-src 'self'" in csp and "script-src 'self'" in csp
+    assert "<script>" not in page.text  # no inline script, so the policy can forbid it
+    for asset in ("/static/app.css", "/static/app.js", "/static/favicon.svg"):
+        assert c.get(asset).status_code == 200
+    assert c.get("/static/../app.py").status_code == 404

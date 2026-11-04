@@ -47,6 +47,9 @@ The 2 "altered quotes VERIFIED" and the 1 "wrong case" were read by hand and are
 
 ## Try it
 
+The web page (`make demo`, then open http://127.0.0.1:8000) has drag-and-drop or paste, a one-click sample (`/?sample`), per-citation cards that put your quotation next to the judgment's own words, and a downloadable annexure. It loads nothing from other sites.
+
+
 ```
 uv sync
 make data-sample && make db-sample    # a small 2023-only database, about 2 minutes

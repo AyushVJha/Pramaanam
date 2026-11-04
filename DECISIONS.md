@@ -248,3 +248,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** two dots also count (the old rule).
 - **Why:** read after the test run: a spliced quote ended in scan debris containing "..", which was taken for an ellipsis and dropped, so only the real opening was checked and the changed ending went unnoticed (DATA_NOTES 33, item 3). Two dots are far more often debris or a typo than an omission mark.
 - **Trade-off:** a draft that really uses ".." as an omission mark now has its quote checked as one piece (likely NEEDS_REVIEW or MISQUOTE rather than a near match). Dev: splice 124/124 MISQUOTE (was 123 + 1), altered quotes VERIFIED 0 of 524, real quotes 124/124 VERIFIED. Test split not re-run (it motivated the change).
+
+## Web page: static HTML, CSS and JS served by the app, no third-party requests
+- **Choice:** the page is `src/pramaan/api/static/` (index.html, app.css, app.js, favicon.svg), plain JavaScript with no framework and no web fonts. The server fills a few placeholders (case count, limits, attribution) and sends a strict Content-Security-Policy (`script-src 'self'`, no inline script, `frame-ancestors 'none'`). Results are drawn from `/check` JSON in the browser; "Download annexure" posts the same file to `/report`. Without JavaScript the form still posts to `/report`.
+- **Alternative:** a React/Vite front end; or web fonts and a CDN.
+- **Why:** lawyers upload confidential drafts, so the page must not talk to anyone but our server, and a CSP that forbids everything else is easy to defend. No build step keeps the repo simple to run and review. Every server value is inserted with `textContent`, never `innerHTML`.
+- **Trade-off:** hand-written DOM code instead of components; system fonts look slightly different per OS. The accuracy figures are static text copied from docs/TEST_RUN_2026-11-05.txt and must be updated by hand when a new measured run replaces them.
