@@ -435,3 +435,34 @@ installed in Pramaan and no code from that project is used). Script: `bench/docl
   side notes helps quoting but loses the case-name block. The excerpt metric cannot see these.
 - Limits: 10 pages, labels transcribed by Claude, not by a human; excerpts are body paragraphs, so
   headings, tables and footnotes are not scored. These numbers say "worth testing properly", not "adopt".
+
+**All 40 pages of the small sample (same fixed rule, no pages chosen, still exploratory).** The
+other 30 pages were transcribed by Claude with the same rule and BEFORE any engine output was
+looked at (one page, 1955_2_919_924 p1, had been seen with its engine text, so it is shown but left
+out of the summary: 39 blind pages). Labels: `bench/labels/claude_excerpts.json` (40 items). Still
+NOT human-verified. Reproduce: run `bench/docling_pages.py default` and `... ocr` with a Python that
+has Docling, then `uv run python bench/eval_ocr_engines.py` (about 3 minutes; the scorer uses
+numpy, which pandas already brings in).
+
+| 39 blind pages, CER | embedded | Tesseract psm 3 | psm 4 | psm 6 | Docling default | Docling + OCR |
+|---|---|---|---|---|---|---|
+| mean | 0.021 | 0.011 | 0.017 | 0.031 | 0.043 | **0.006** |
+| median | 0.010 | **0.003** | **0.003** | 0.013 | 0.006 | 0.006 |
+| worst page | 0.169 | 0.171 | 0.161 | 0.154 | 0.423 | **0.021** |
+| pages over 5% error | 3 | 2 | 4 | 6 | 8 | **0** |
+| pages over 1% error | 20 | **6** | 7 | 26 | 15 | 10 |
+
+- **Docling + full-page OCR has no bad page** (worst 2.1%) and the lowest mean; Tesseract with
+  automatic layout has the lowest median and the fewest pages over 1%, but two pages near 10 to 17%
+  (both pages with a margin side-note block cutting into the body text: 1961 p1, 1960 p29).
+  So the two make different kinds of mistakes: Tesseract is slightly more exact on characters,
+  Docling is safer on layout.
+- **Docling's default mode (layout over the embedded text) is worse than the embedded text alone**
+  on 8 pages (up to 42%): it reorders blocks and keeps the embedded layer's noise. Do not use it.
+- **The embedded layer** has 3 bad pages and 20 pages over 1% error. It is usable, not safe.
+- **Likely label noise:** 2024_6 p1 is 2.1% for every engine, which points at my transcription
+  (quote or dash handling), not at the engines. The size of my own error is not measured, so
+  differences below about 1 to 2 points should not be read as real.
+- Speed on this Mac: Docling + OCR median 2.7 s per page (max 7.4); default 3.9 s (max 10.3).
+- Not covered: tables, footnotes, headings and side notes (excerpts are body text only), scans
+  worse than these, other engines (Marker, PaddleOCR, a vision model), human-verified labels.

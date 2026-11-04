@@ -19,6 +19,7 @@ import re
 import statistics
 from pathlib import Path
 
+import numpy as np
 import pymupdf
 
 from pramaan.config import DATA_DIR
@@ -42,18 +43,19 @@ def best_substring_errors(needle: str, haystack: str) -> int:
 
     Standard dynamic programming with a free start and a free end in the haystack: row 0 is all
     zeros (the match may begin anywhere), and the answer is the smallest value in the last row.
+    Each row is computed with numpy. The "extra letter in the engine text" move depends on the
+    cell to its left, which a running minimum handles: new[j] = min over k <= j of (t[k] + j - k).
     """
-    previous = [0] * (len(haystack) + 1)
-    for i, a in enumerate(needle, start=1):
-        current = [i] + [0] * len(haystack)
-        for j, b in enumerate(haystack, start=1):
-            current[j] = min(
-                previous[j - 1] + (a != b),  # same letter, or one wrong letter
-                previous[j] + 1,             # a letter of the excerpt is missing in the engine text
-                current[j - 1] + 1,          # the engine text has an extra letter
-            )
-        previous = current
-    return min(previous)
+    hay = np.frombuffer(haystack.encode("utf-32-le"), dtype=np.uint32)
+    positions = np.arange(len(hay) + 1)
+    previous = np.zeros(len(hay) + 1, dtype=np.int64)
+    for i, letter in enumerate(needle, start=1):
+        wrong = (hay != ord(letter)).astype(np.int64)
+        t = np.empty(len(hay) + 1, dtype=np.int64)
+        t[0] = i
+        t[1:] = np.minimum(previous[:-1] + wrong, previous[1:] + 1)
+        previous = np.minimum.accumulate(t - positions) + positions
+    return int(previous.min())
 
 
 def cer(excerpt: str, engine_text: str) -> float:
@@ -93,9 +95,23 @@ def main() -> None:
             scores[e].append(row[e])
         label = f"{it['path']} p{it['page']}"
         print(f"{label:<26}" + "".join(f"{row[e]:>16.3f}" for e in engines))
-    print(f"{'mean':<26}" + "".join(f"{statistics.mean(scores[e]):>16.3f}" for e in engines))
-    print(f"{'median':<26}" + "".join(f"{statistics.median(scores[e]):>16.3f}" for e in engines))
-    print(f"{'worst':<26}" + "".join(f"{max(scores[e]):>16.3f}" for e in engines))
+    # A page whose engine text was seen before it was labelled is not a blind label: left out here.
+    blind = [i for i, it in enumerate(items) if not it.get("seen_engine_text")]
+    print(f"\nsummary over {len(blind)} blind pages "
+          f"({len(items) - len(blind)} seen-before page left out)")
+    rows = {
+        "mean": statistics.mean,
+        "median": statistics.median,
+        "worst": max,
+        "pages > 5% error": lambda v: sum(x > 0.05 for x in v),
+        "pages > 1% error": lambda v: sum(x > 0.01 for x in v),
+    }
+    for name, fn in rows.items():
+        cells = []
+        for e in engines:
+            value = fn([scores[e][i] for i in blind])
+            cells.append(f"{value:>16}" if isinstance(value, int) else f"{value:>16.3f}")
+        print(f"{name:<26}" + "".join(cells))
 
 
 if __name__ == "__main__":
