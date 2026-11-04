@@ -242,3 +242,10 @@ It would be, so each evaluation item hides the evidence its own citing judgment 
 
 **5. What if two judgments disagree on a number?**
 The step refuses and falls through to fuzzy matching. 5 of 390 repeated numbers conflicted. I never pick a winner by count, because a typo repeated in two places would then win.
+
+## Verdict redesign (step 7): five likely questions
+1. **Why can VERIFIED be given without the AI?** Because the claim is narrow: the citation exists, identity and quotes check out. These are deterministic string/DB checks. The AI cannot be trusted with a green tick.
+2. **Why can the AI still downgrade?** A warning costs a lawyer a minute of reading; a false tick costs a court. Evidence quotes are verified to exist before the warning counts.
+3. **What is "proven"?** Exact neutral/SCR number, or an SCC/AIR pair printed in at least 2 other judgments. One judgment can hold a typo (the Basheer case, DATA_NOTES 15).
+4. **Why LOW_FIDELITY_SOURCE?** The dataset text is scanned OCR. A one-word near-match that looks like OCR noise is not evidence of a misquote.
+5. **Is the witness threshold of 2 tuned?** No, it is a conservative constant; its effect is measured on dev only (scripts/alias_witness_dev.py).
