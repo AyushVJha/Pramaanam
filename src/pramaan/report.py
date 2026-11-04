@@ -12,6 +12,8 @@ def render_report(reports: list[CitationReport]) -> str:
     for i, r in enumerate(reports, 1):
         lines.append(f"{i}. [{r.status}] {r.raw}" + (f"  ({r.case_name})" if r.case_name else ""))
         lines.append(f"   {r.reason}")
+        if r.status not in ("VERIFIED",) and _quote_note(r):
+            lines.append(f"  {_quote_note(r)}")
         if r.case_title:
             lines.append(f"   Matched: {r.case_title} ({r.case_year}) id={r.case_id}")
         if r.support and r.support.evidence:
@@ -63,6 +65,18 @@ def _method_line(llm_used: bool, model: str | None) -> str:
     return f"Checks run: existence, identity, quotes, paragraph, support (model: {model})."
 
 
+def _quote_note(r: CitationReport) -> str:
+    """The quotation and the closest words in the judgment, for any report that checked a quote."""
+    if not r.draft_quote or r.quote is None or r.quote.status == "too_short":
+        return ""
+    note = f' Your quote: "{r.draft_quote[:300]}".'
+    if r.quote.matched_text and r.quote.status in ("verbatim", "near_match"):
+        where = f" (para {r.quote.para_nos[0]})" if r.quote.para_nos else ""
+        words = r.quote.matched_text[:300]
+        note += f' Closest words in the judgment{where}: "{words}" (lowercase, no punctuation).'
+    return note
+
+
 def render_markdown(
     reports: list[CitationReport], source: str, date: str, *, llm_used: bool, model: str | None
 ) -> str:
@@ -81,7 +95,8 @@ def render_markdown(
     for i, r in enumerate(reports, 1):
         matched = f"{r.case_title} ({r.case_year}) [{r.case_id}]" if r.case_title else "-"
         cell = lambda t: str(t).replace("|", "\\|").replace("\n", " ")  # noqa: E731
-        lines.append(f"| {i} | {cell(r.raw)} | {r.status} | {cell(matched)} | {cell(r.reason)} |")
+        note = cell(r.reason + _quote_note(r))
+        lines.append(f"| {i} | {cell(r.raw)} | {r.status} | {cell(matched)} | {note} |")
     evidence = [(i, r) for i, r in enumerate(reports, 1) if r.support and r.support.evidence]
     if evidence:
         lines += ["", "## Evidence quoted from the judgments", ""]
@@ -102,7 +117,7 @@ def render_html(
         matched = f"{r.case_title} ({r.case_year}) [{r.case_id}]" if r.case_title else "-"
         rows.append(
             f"<tr><td>{i}</td><td>{esc(r.raw)}</td><td class='s-{esc(r.status)}'>{esc(r.status)}"
-            f"</td><td>{esc(matched)}</td><td>{esc(r.reason)}</td></tr>"
+            f"</td><td>{esc(matched)}</td><td>{esc(r.reason + _quote_note(r))}</td></tr>"
         )
     evidence = "".join(
         f"<li>{i}. para {ev.para_no}: &ldquo;{esc(ev.quote)}&rdquo;</li>"

@@ -37,7 +37,7 @@ class QuoteResult(BaseModel):
     para_nos: list[int] = []  # paragraphs holding the first piece, best first
     spans_paragraphs: bool = False  # true if a piece runs across two neighbouring paragraphs
     matched_text: str | None = None  # the judgment's own words (lowercased) for the first piece
-    changes: list[str] = []  # e.g. ["quote has 'not', judgment has 'now'"]
+    changes: list[str] = []  # e.g. ["your quote has 'not', the judgment has 'now'"]
     flags: list[str] = []  # "negation", "number"
     # True when every difference is a single word that looks like a misread of the same word
     # (scan/OCR noise), with no negation or number involved. Used to avoid calling noise a misquote.
@@ -72,7 +72,12 @@ def _describe_changes(quote: str, found: str) -> tuple[list[str], list[str], boo
         if op == "equal":
             continue
         mine, theirs = " ".join(a[i1:i2]), " ".join(b[j1:j2])
-        changes.append(f"quote has '{mine}', judgment has '{theirs}'")
+        if not theirs:
+            changes.append(f"your quote has '{mine}', which is not in the judgment here")
+        elif not mine:
+            changes.append(f"the judgment has '{theirs}' here, which your quote leaves out")
+        else:
+            changes.append(f"your quote has '{mine}', the judgment has '{theirs}'")
         changed = set(a[i1:i2]) | set(b[j1:j2])
         if changed & NEGATIONS:
             flags.add("negation")

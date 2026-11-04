@@ -177,3 +177,12 @@ def test_loosely_linked_name_cannot_accuse(con, tmp_path):
     c = cit(name="Totally Different v. Other Person")
     c.name_tight = False
     assert run(con, c, tmp=tmp_path).status == "NEEDS_REVIEW"
+
+
+def test_report_shows_the_quote_and_the_judgments_words_for_a_flagged_quote(con, tmp_path):
+    altered = "Anticipatory bail may not be granted where the court finds no prima facie case"
+    r = run(con, cit(quote=altered, para=2), tmp=tmp_path)
+    out = render_report([r])
+    assert r.status == "NEEDS_REVIEW"
+    assert "Your quote:" in out and "Closest words in the judgment (para 2)" in out
+    assert "your quote has 'not'" in out

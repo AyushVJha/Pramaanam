@@ -54,6 +54,7 @@ class CitationReport(BaseModel):
     quote: QuoteResult | None = None
     paragraph: ParagraphResult | None = None
     support: SupportResult | None = None  # the AI second opinion; never raises a status
+    draft_quote: str | None = None  # the quotation as the draft gave it
     cost_usd: float = 0.0
 
 
@@ -154,6 +155,7 @@ def check_citation(
     if citation.quoted_text:
         quote = check_quote(con, case_id, citation.quoted_text)
         found["quote"] = quote
+        found["draft_quote"] = citation.quoted_text
         if quote.status == "not_found":
             other = second_reading(con, case_id, citation.quoted_text)
             if other is not None and other.status != "not_found":
