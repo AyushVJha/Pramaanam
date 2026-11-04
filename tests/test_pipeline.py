@@ -194,3 +194,11 @@ def test_quote_against_a_judgment_with_no_text_is_cannot_verify_not_misquote(con
     r = run(con, cit(quote="Anticipatory bail may be granted where the court finds"), tmp=tmp_path)
     assert r.status == "CANNOT_VERIFY" and "no text" in r.reason
     assert run(con, cit(), tmp=tmp_path, use_llm=False).status == "VERIFIED"  # no quote given
+
+
+def test_missing_quote_in_a_judgment_with_thin_text_is_review_not_accusation(con, tmp_path):
+    for page in (2, 3, 4, 5):  # five pages but only a few dozen characters on each
+        con.execute("INSERT INTO paragraphs VALUES ('C1', ?, ?, 'short text')", (10 + page, page))
+    r = run(con, cit(quote="Bail is a fundamental and absolute right of every accused"),
+            tmp=tmp_path)
+    assert r.status == "NEEDS_REVIEW" and "incomplete" in r.reason

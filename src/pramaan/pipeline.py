@@ -37,6 +37,10 @@ Status = Literal[
     "UNSUPPORTED", "CONTRADICTED", "LOW_FIDELITY_SOURCE", "CANNOT_VERIFY", "NEEDS_REVIEW",
 ]
 
+# Below this many characters per page the stored text is probably incomplete (a part of the PDF
+# without a text layer), so a quote missing from it proves little. 7.5% of judgments fall below.
+THIN_CHARS_PER_PAGE = 800
+THIN_MIN_PAGES = 3  # a one- or two-page order can be short without anything being missing
 MIN_ALIAS_WITNESSES = 2  # a parallel-citation pair must be printed in this many other judgments
 
 
@@ -80,6 +84,15 @@ def _weak_reason(resolution: Resolution) -> str:
             f"judgment{'s' if n != 1 else ''}, not by the citation number itself."
         )
     return "The case was found by its party names only; the citation number did not match."
+
+
+def text_is_thin(con: sqlite3.Connection, case_id: str) -> bool:
+    """True when the judgment's stored text is far shorter than its page count suggests."""
+    chars, pages = con.execute(
+        "SELECT COALESCE(SUM(LENGTH(text)), 0), COALESCE(MAX(page), 0) FROM paragraphs "
+        "WHERE case_id = ?", (case_id,),
+    ).fetchone()
+    return pages >= THIN_MIN_PAGES and chars / pages < THIN_CHARS_PER_PAGE
 
 
 def _case_info(con: sqlite3.Connection, case_id: str) -> tuple[str | None, int | None]:
@@ -165,6 +178,13 @@ def check_citation(
         quote = check_quote(con, case_id, citation.quoted_text)
         found["quote"] = quote
         found["draft_quote"] = citation.quoted_text
+        if quote.status == "not_found" and text_is_thin(con, case_id):
+            return CitationReport(
+                **found, status="NEEDS_REVIEW",
+                reason="The quote was not found, but the stored text of this judgment looks "
+                "incomplete (very little text for its page count), so it may be on a page we "
+                "could not read. Check the judgment itself.",
+            )
         if quote.status == "not_found":
             other = second_reading(con, case_id, citation.quoted_text)
             if other is not None and other.status != "not_found":

@@ -44,6 +44,9 @@ CHECKS: list[tuple[str, str, str]] = [
     ("case_without_any_citation", "soft",
      "SELECT COUNT(*) FROM cases c WHERE NOT EXISTS "
      "(SELECT 1 FROM case_citations x WHERE x.case_id = c.cnr)"),
+    ("cases_with_thin_text", "soft",
+     "SELECT COUNT(*) FROM (SELECT 1 FROM paragraphs GROUP BY case_id "
+     "HAVING MAX(page) >= 3 AND SUM(LENGTH(text)) * 1.0 / MAX(page) < 800)"),
     ("duplicate_paragraph_numbers", "soft",
      "SELECT COUNT(*) FROM "
      "(SELECT 1 FROM paragraphs GROUP BY case_id, para_no HAVING COUNT(*) > 1)"),
