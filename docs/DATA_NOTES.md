@@ -264,3 +264,17 @@ Test split, run once with the alias step (threshold 0.85 unchanged, nothing tune
 - Hidden-case lookalike match (leave-one-out): 48/667 (7.2%) to 49/667 (7.3%).
 - Test is consistent with dev (90.7%). The gain is real but modest, and wrong-case answers and lookalike matches did not go down: one more of each. Per format: AIR 151 to 167 correct, SCC 404 to 421, SCC OnLine unchanged at 12 (the alias step does not cover it).
 - The test split has now been run twice in total for the resolver: once for the M3 result, once for this step. The step was designed and checked on dev only.
+
+## 14. Is the text usable? Scans, OCR and tables (measured 4 Nov 2026)
+
+We run no OCR of our own: PyMuPDF reads the text layer already inside each PDF. The older judgments are scans, so the question is whether that layer exists and how clean it is. Scripts: `scripts/measure_text_coverage.py` (log `logs/text_coverage.txt`) and `scripts/measure_text_quality.py` (log `logs/text_quality.txt`). Samples, not the whole corpus.
+
+**Is there text?** In the 8 sample years (1955 to 2023, 177 to 917 PDFs each), 0.0% of PDFs were mostly empty (more than half the pages under 30 characters) and the median empty-page share was 0.0%. Every decade has 0.0% of cases with no paragraph rows (a few cases per decade are below the rounding). So the scans carry an embedded text layer (presumably from the source's own OCR). Not checked: every year, and whether a missing PDF or an image-only page hides somewhere in the other years.
+
+**How clean?** Unknown-word rate (share of 4+ letter tokens absent from a vocabulary built from 300 clean 2020 to 2025 judgments; names and old spellings also count, so read it as a trend): 1950s 12.2%, 1960s 12.7%, 1970s 13.9%, 1980s 11.3%, 1990s 9.2%, 2000s 7.8%, 2010s 6.8%, 2020s 6.1%. Old text is noisier by roughly two times, not broken. This is not an OCR error rate: it was not checked against a hand-typed reference.
+
+**How much of the text reaches the database?** Median share of raw page text kept as paragraphs: 99% for the 1955 to 2005 samples, 67% for 2015 and 75% for 2023 (headnotes and front matter are dropped on purpose).
+
+**Fewer paragraphs in older judgments.** Median paragraphs per case: 1950s 12, 1960s 10, 1970s 7, 1980s 7, 1990s 5, 2000s 10, 2010s 13, 2020s 15. The 1990s figure is low. Not yet explained: either many of those judgments are short or not numbered, or the splitter merges text. A paragraph reference such as "para 23" is only checkable where the judgment's numbering was recovered.
+
+**Tables.** Not handled. Table cells arrive as flattened lines inside whatever paragraph surrounds them, so numbers in tables are unreliable for quote checks. Not measured: how many judgments contain tables that matter.
