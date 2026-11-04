@@ -501,3 +501,7 @@ Candidate machine (specs as reported by the owner of the account, no access gran
 ## 21. Citation formats the extractor does not parse (2026-11-05)
 
 Checked on a made-up line of 12 citations. Recognised: SCC, SCC OnLine, AIR, neutral (INSC), SCR including Supplement forms, and now "1976 (2) SCR 100". NOT parsed as a citation number (they fall back to the case name, so the best possible status is NEEDS_REVIEW, never VERIFIED): "(2010) 3 SCC (Cri) 55" and other SCC sub-series, "1995 Supp (3) SCC 100", "2023 (4) SCALE 12", "JT 2005 (3) SC 10". SCC sub-series pages are separate numbering from the main SCC, so mapping them onto the SCC alias table would be wrong. Not measured on real drafts.
+
+## 22. The 22 dev items where the true case is in the corpus but the result is NOT_FOUND_IN_CORPUS (2026-11-05)
+
+Read all 22 (`bench/eval_pipeline.py --split dev`). None is a wrong answer; they are misses of the safe kind. Causes, by count of what I could read from the names: draft name is an acronym or short form (LIC, DDA, CBSE, RBI, Govt. of India); draft name cut by the extractor on a line break or "Ltd." (about 8); stored title differs a lot from the draft's (about 4, e.g. "Osmania University v. Chancellor" vs "D.S. Reddy v. Chancellor, Osmania University"); the SCC number is not in the alias table at all and the name is too different. Not fixed: acronym expansion could raise recall but fuzzy matches can never reach VERIFIED, so the gain is only a better hint in a NEEDS_REVIEW.
