@@ -36,7 +36,8 @@ DISCLAIMER = (
     "Automated check, not legal advice. Verify against an authorised source. "
     "A status of NOT_FOUND_IN_CORPUS does not mean a case is fake: the corpus holds Supreme Court "
     "of India judgments only (CC-BY-4.0 open dataset) and misses High Court cases and "
-    "commercial-only citations."
+    "commercial-only citations. Short-form references such as \"supra\", \"ibid\" and \"id.\" "
+    "are not checked, and a case mentioned without a citation number or a \"v.\" is not found."
 )
 
 STATUS_MEANING = {
