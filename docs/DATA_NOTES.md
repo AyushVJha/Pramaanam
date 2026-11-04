@@ -483,3 +483,7 @@ Candidate machine (specs as reported by the owner of the account, no access gran
 - 185 items got the right case but only NEEDS_REVIEW: 137 were found by name only (no alias evidence left once the citing judgment is hidden) and 50 had a single witness. 22 true cases came out NOT_FOUND_IN_CORPUS, 2 wrong cases were NEEDS_REVIEW (not asserted), 3 got NAME_MISMATCH.
 - Caveat: hiding the citing judgment removes one witness from every alias, so this under-states how many a real draft would verify. The safety number (zero false VERIFIED) is the one this benchmark can support; the coverage number is a floor, not an estimate for real drafts.
 - Dev only. Test split not run.
+
+## 19. Neutral numbers shared by more than one judgment (2026-11-05)
+
+96 (year, number) pairs of INSC citations are printed on 2 or more judgments (14 on 3 or more). Looking at the first rows: some are later orders in the same matter that print the earlier judgment's neutral number (e.g. three Sushil Ansal v. State orders of 2014-2015 all carry 2014 INSC 168); others are different cases (Bhule Ram v. Union of India and Raja Ram v. Union of India both 2014 INSC 222). We have not worked out which are source errors. The resolver returns NEEDS_REVIEW "matches more than one judgment" for these, which is the safe behaviour. Idea, not built: when the draft's own case name matches exactly one of the candidates, resolve to it (number plus name together identify it). Would need its own dev measurement first.
