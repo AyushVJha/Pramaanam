@@ -13,23 +13,29 @@ Safe-by-default for a public host:
 """
 
 import html
+import logging
 import os
 import sqlite3
 import tempfile
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
 
 from pramaan import config
+from pramaan.api.ratelimit import RateLimiter
 from pramaan.citations.extract import extract
 from pramaan.data.draft_reader import SUPPORTED, read_draft
+from pramaan.data.fetch_db import ensure_database
 from pramaan.pipeline import CitationReport, check_citation
 from pramaan.report import DISCLAIMER, render_html, report_to_dicts
 
 MAX_UPLOAD_BYTES = 2 * 1024 * 1024
 MAX_CITATIONS = 60
+RATE_LIMIT = 10  # uploads per client per minute
+logger = logging.getLogger(__name__)
 ATTRIBUTION = (
     "Judgment data: Supreme Court of India judgments, open dataset licensed CC-BY-4.0 "
     "(github.com/vanga/indian-supreme-court-judgments)."
@@ -63,7 +69,27 @@ LLM_BOX = (
 def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> FastAPI:
     db = db_path or config.DB_PATH
     llm_ok = llm_enabled if llm_enabled is not None else os.environ.get("PRAMAAN_ENABLE_LLM") == "1"
-    app = FastAPI(title="Pramaan", version="0.1.0")
+    limiter = RateLimiter(RATE_LIMIT, 60.0)
+
+    def client_of(request: Request) -> str:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        return forwarded.split(",")[0].strip() or (request.client.host if request.client else "?")
+
+    def throttle(request: Request) -> None:
+        if not limiter.allow(client_of(request)):
+            raise HTTPException(429, "Too many uploads; wait a minute and try again.")
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        try:  # download the database on first start of a fresh host
+            ensure_database(
+                db, os.environ.get("PRAMAAN_DB_URL"), os.environ.get("PRAMAAN_DB_SHA256")
+            )
+        except Exception:
+            logger.exception("could not prepare the database")  # /health will report it
+        yield
+
+    app = FastAPI(title="Pramaan", version="0.1.0", lifespan=lifespan)
 
     def run_check(upload: UploadFile, data: bytes, use_llm: bool) -> list[CitationReport]:
         suffix = Path(upload.filename or "").suffix.lower()
@@ -100,7 +126,10 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
         }
 
     @app.post("/report", response_class=HTMLResponse)
-    async def report(draft: UploadFile = File(...), use_llm: str = Form("")) -> str:
+    async def report(
+        request: Request, draft: UploadFile = File(...), use_llm: str = Form("")
+    ) -> str:
+        throttle(request)
         data = await draft.read(MAX_UPLOAD_BYTES + 1)
         reports = run_check(draft, data, bool(use_llm))
         model = config.JUDGE_MODEL if use_llm else None
@@ -110,7 +139,10 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
         )
 
     @app.post("/check")
-    async def check(draft: UploadFile = File(...), use_llm: bool = Form(False)) -> dict:
+    async def check(
+        request: Request, draft: UploadFile = File(...), use_llm: bool = Form(False)
+    ) -> dict:
+        throttle(request)
         data = await draft.read(MAX_UPLOAD_BYTES + 1)
         reports = run_check(draft, data, use_llm)
         return {

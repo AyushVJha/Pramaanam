@@ -170,3 +170,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Privacy and safety defaults:** uploads are processed in a temp folder that is deleted at once; nothing is stored or logged. The AI support check is off unless the operator sets `PRAMAAN_ENABLE_LLM=1`, and a visitor must also tick it. Upload is capped at 2 MB and 60 citations. Unsupported files and corrupt Word files return a clean 400.
 - **Alternative:** Gradio (fastest on Hugging Face Spaces, but a large dependency and less control over the report) or a Next.js front end (a second codebase).
 - **Trade-off / not done:** no rate limiting yet, so a public host needs one in front; each request opens its own read-only database connection; the 1.6 GB database must be present on the host. The SPEC target "10 citations in under ~30 s" is not measured.
+
+### Deployment packaging: download a checksummed database at start (deploy)
+- **Choice:** the image does not contain the database. On start the app downloads a gzip of the serving database (327 MB; 1.29 GB unpacked, without the paragraph full-text index the app does not use), checks its sha256 before unpacking, and renames it into place. A per-client rate limit (10 uploads a minute) sits in front of the upload endpoints.
+- **Alternative:** bake 1.3 GB into the image (slow builds and pushes, hits free-host size limits), or rebuild the database on the host (needs the 552 MB text layer and about 4 minutes).
+- **Trade-off:** free hosts wipe the disk on restart, so each cold start re-downloads. The rate limit is in memory and per process, and trusts X-Forwarded-For if the host sets it: a speed bump, not security.
+- **Not verified:** the Dockerfile has not been built, and no host has been tried.

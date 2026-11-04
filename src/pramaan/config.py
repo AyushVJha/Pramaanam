@@ -5,7 +5,7 @@ from pathlib import Path
 
 # Where downloaded/derived data lives. Override with PRAMAAN_DATA_DIR (e.g. an external disk).
 DATA_DIR = Path(os.environ.get("PRAMAAN_DATA_DIR", "data"))
-DB_PATH = Path("pramaan.db")
+DB_PATH = Path(os.environ.get("PRAMAAN_DB_PATH", "pramaan.db"))
 
 # Permanent archive of the raw bucket files (an rclone remote path). Raw files are copied
 # here once, so we never need to download from S3 again. See DECISIONS.md.
