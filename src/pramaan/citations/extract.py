@@ -140,18 +140,26 @@ def _proposition(text: str, span: tuple[int, int]) -> str:
     return text[sentence_start:sentence_end].strip()
 
 
-def _nearby_quote(text: str, span: tuple[int, int], window: int = 200) -> str | None:
-    start, end = span
-    region = text[max(0, start - window) : min(len(text), end + window)]
-    m = _QUOTE.search(region)
-    return m.group(1).strip() if m else None
+def _assign_nearest(
+    text: str, pattern: re.Pattern, spans: list[tuple[int, int]], window: int
+) -> dict[int, re.Match]:
+    """Give each match of `pattern` to the ONE nearest citation span, never across a blank line.
 
-
-def _nearby_para_ref(text: str, span: tuple[int, int], window: int = 80) -> int | None:
-    start, end = span
-    region = text[max(0, start - window) : min(len(text), end + window)]
-    m = _PARA_REF.search(region)
-    return int(m.group(1)) if m else None
+    Before this, every citation took the first match within the window, so a quote could be
+    attached to a neighbouring citation and then be checked against the wrong judgment.
+    A citation keeps the first (leftmost) match assigned to it.
+    """
+    owner: dict[int, re.Match] = {}
+    for m in pattern.finditer(text):
+        best: tuple[int, int] | None = None  # (gap, citation index)
+        for i, (start, end) in enumerate(spans):
+            gap = max(0, m.start() - end, start - m.end())
+            lo, hi = min(m.start(), start), max(m.end(), end)
+            if gap <= window and "\n\n" not in text[lo:hi] and (best is None or gap < best[0]):
+                best = (gap, i)
+        if best is not None and best[1] not in owner:
+            owner[best[1]] = m
+    return owner
 
 
 def extract(text: str) -> list[Citation]:
@@ -159,6 +167,18 @@ def extract(text: str) -> list[Citation]:
     structured = _find_structured_matches(text)
     case_names = _find_case_name_matches(text)
     attached_names, used_case_name_idx = _attach_case_names(structured, case_names)
+
+    spans = [(st, en) for st, en, _f, _r in structured] + [
+        (st, en) for j, (st, en, _n) in enumerate(case_names) if j not in used_case_name_idx
+    ]
+    quotes = _assign_nearest(text, _QUOTE, spans, window=200)
+    para_refs = _assign_nearest(text, _PARA_REF, spans, window=80)
+
+    def quote_of(k: int) -> str | None:
+        return quotes[k].group(1).strip() if k in quotes else None
+
+    def para_of(k: int) -> int | None:
+        return int(para_refs[k].group(1)) if k in para_refs else None
 
     citations = []
     for i, (start, end, fmt, raw) in enumerate(structured):
@@ -171,14 +191,16 @@ def extract(text: str) -> list[Citation]:
                 parsed=parse_citation(raw, fmt),
                 case_name=attached_names.get(i),
                 proposition=_proposition(text, span),
-                quoted_text=_nearby_quote(text, span),
-                para_ref=_nearby_para_ref(text, span),
+                quoted_text=quote_of(i),
+                para_ref=para_of(i),
             )
         )
 
+    k = len(structured)
     for j, (cn_start, cn_end, name) in enumerate(case_names):
         if j in used_case_name_idx:
             continue
+        idx, k = k, k + 1
         span = (cn_start, cn_end)
         cleaned_name = _clean_case_name(name)
         citations.append(
@@ -188,8 +210,8 @@ def extract(text: str) -> list[Citation]:
                 format="CASE_NAME",
                 case_name=cleaned_name,
                 proposition=_proposition(text, span),
-                quoted_text=_nearby_quote(text, span),
-                para_ref=_nearby_para_ref(text, span),
+                quoted_text=quote_of(idx),
+                para_ref=para_of(idx),
             )
         )
 

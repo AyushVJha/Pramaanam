@@ -213,3 +213,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** a migration/versioning framework. Overkill for a database we rebuild from the archive.
 - **Why:** a rebuild that silently changes counts or breaks references must be visible.
 - **Trade-off:** the manifest is local, not committed; the soft counts are the thing to compare by eye after a rebuild.
+
+## Quotes and paragraph refs belong to the nearest citation, within one paragraph
+- **Choice:** `extract._assign_nearest` gives each quoted passage / "para N" to the single nearest citation, never across a blank line.
+- **Alternative:** first match within +-200 characters (old behaviour).
+- **Why:** found by testing a mixed draft: a quote was attached to the neighbouring citation and checked against the wrong judgment (wrong MISQUOTE or a quote reused). 
+- **Trade-off:** a quote placed in a different paragraph from its citation (e.g. in a footnote) is no longer linked; that citation then gets no quote check, never a wrong one.
