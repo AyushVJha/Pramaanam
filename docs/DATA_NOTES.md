@@ -470,3 +470,7 @@ numpy, which pandas already brings in).
 ## 17. Layout build throughput (measured 2026-11-05)
 
 Docling + full-page Tesseract on this laptop (4 workers, run at low priority): 360 judgments / 7,900 pages of 2024 in about 110 minutes, 0 failures, 5.7 MB of blocks. That is about 1.2 pages/s. The whole corpus (682,658 pages) would take about 158 hours, so a whole-corpus layout build on this machine is not practical. Layout is therefore used as an on-demand second reading for judgments a draft actually cites (and for evaluation samples), not as the primary text of every judgment. Partial 2024 store kept (resumable). Build stopped by hand.
+
+Profile of one 5-page judgment (laptop, 4 threads, docling timings): OCR 6.3 s, layout network 1.2 s, whole pipeline 6.6 s (stages overlap). OCR is Tesseract on CPU, so a GPU does not speed up the main cost.
+
+Candidate machine (specs as reported by the owner of the account, no access granted): 2 x AMD EPYC 7763, 128 physical cores, 1 TB RAM, one A100 80 GB shared with other jobs. If one core matches one laptop worker (not measured) and scaling is linear (optimistic), 32 workers is about 20 h and 64 workers about 10 h for the whole corpus. Not run: needs the owner's approval; first step would be a 50-page timing test at lowest priority, CPU only. Selective OCR (OCR only pages whose embedded text looks bad) could cut this further, but needs a page-quality flag that has not been built or validated, so no saving is claimed.
