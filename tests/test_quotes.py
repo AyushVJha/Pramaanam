@@ -100,3 +100,22 @@ def test_normalise_and_split_helpers():
     assert split_segments("one two three four .... five six seven eight") == [
         "one two three four", "five six seven eight"
     ]
+
+
+def test_sentences_from_one_paragraph_with_text_left_out_is_near_match_not_misquote():
+    from pramaan.checks.quotes import check_quote_in_paragraphs
+
+    para = (
+        "A suit under this section is a suit of a special nature and presupposes a public trust. "
+        "It can proceed only on an allegation of breach of trust or the need for directions "
+        "from the court, and it must pray for the reliefs mentioned in the section. "
+        "It is only when these conditions are fulfilled that the suit may be brought."
+    )
+    quote = (
+        "A suit under this section is a suit of a special nature and presupposes a public trust. "
+        "It is only when these conditions are fulfilled that the suit may be brought."
+    )
+    r = check_quote_in_paragraphs([(5, para)], quote)
+    assert r.status == "near_match" and "omission" in r.flags
+    invented = quote.split(". ")[0] + ". Costs shall follow the event in all such matters."
+    assert check_quote_in_paragraphs([(5, para)], invented).status == "not_found"

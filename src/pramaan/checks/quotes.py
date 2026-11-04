@@ -180,8 +180,61 @@ def _best_hit(paras: list[tuple[int, str]], segment: str) -> list[_Hit]:
     return hits
 
 
+_SENTENCE_BREAK = re.compile(r"(?<=[.?!;:])[\"\u201d')\]]*\s+(?=[A-Z\"\u201c(])")
+MIN_PART_WORDS = 5
+
+
+def _omission_check(paras: list[tuple[int, str]], quote: str) -> QuoteResult | None:
+    """A quote whose sentences each appear in the SAME paragraph, in order, but with text left
+    out in between and no '...' to say so. Real drafts do this; it is not an invented quote."""
+    parts = [normalise(p) for p in _SENTENCE_BREAK.split(quote)]
+    parts = [p for p in parts if p]
+    if len(parts) < 2 or any(len(p.split()) < MIN_PART_WORDS for p in parts):
+        return None
+    tops = []
+    for part in parts:
+        hits = _best_hit(paras, part)
+        if not hits:
+            return None
+        tops.append(hits[0])
+    if len({h.para_no for h in tops}) != 1 or any(h.spans for h in tops):
+        return None
+    return QuoteResult(
+        status="near_match", similarity=min(h.score for h in tops) / 100,
+        para_nos=[tops[0].para_no], matched_text=tops[0].matched,
+        changes=["each sentence is in the judgment, but text between them is left out"],
+        flags=["omission"],
+    )
+
+
 def check_quote_in_paragraphs(paragraphs: list[tuple[int, str]], quote: str) -> QuoteResult:
     """paragraphs: (para_no, text) in order. Pure function, no database."""
+    result = _check_segments(paragraphs, quote)
+    if result.status != "not_found":
+        return result
+    # Not found as written. Try each '...'-separated piece; a piece that is several sentences of
+    # one paragraph with text left out between them is rescued as an omission (near match).
+    paras = [(no, normalise(text)) for no, text in paragraphs]
+    pieces = [p for p in _ELLIPSIS.split(quote) if len(normalise(p).split()) >= MIN_SEGMENT_WORDS]
+    found: list[QuoteResult] = []
+    for piece in pieces:
+        r = _check_segments(paragraphs, piece)
+        if r.status == "not_found":
+            r = _omission_check(paras, piece) or r
+        if r.status == "not_found":
+            return result
+        found.append(r)
+    if not any("omission" in r.flags for r in found):
+        return result
+    return QuoteResult(
+        status="near_match", similarity=min(r.similarity for r in found),
+        para_nos=found[0].para_nos, matched_text=found[0].matched_text,
+        changes=[c for r in found for c in r.changes],
+        flags=sorted({f for r in found for f in r.flags}),
+    )
+
+
+def _check_segments(paragraphs: list[tuple[int, str]], quote: str) -> QuoteResult:
     segments = split_segments(quote)
     if not segments:
         return QuoteResult(status="too_short", similarity=0.0)

@@ -20,7 +20,7 @@ _CASE_NAME_PROXIMITY = 40
 _QUOTE_TIGHT_GAP = 100  # characters between a quote and its citation
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
-_QUOTE = re.compile(r"[\"“]([^\"“”]{15,}?)[\"”]")
+_MIN_QUOTE_CHARS = 15
 _PARA_REF = re.compile(r"\bpara(?:graph)?s?\.?\s*(?:no\.?\s*)?(\d{1,4})\b", re.IGNORECASE)
 
 # Minimum word count on each side of "v."/"vs." to count as a case name, not a stray phrase.
@@ -163,9 +163,61 @@ def _proposition(text: str, span: tuple[int, int]) -> str:
     return text[sentence_start:sentence_end].strip()
 
 
+class _QuoteMatch:
+    """A quoted passage, shaped like re.Match (start, end, group(1)) so it can be assigned."""
+
+    def __init__(self, start: int, end: int, inner: str):
+        self._start, self._end, self._inner = start, end, inner
+
+    def start(self) -> int:
+        return self._start
+
+    def end(self) -> int:
+        return self._end
+
+    def group(self, _n: int = 1) -> str:
+        return self._inner
+
+
+_OPEN_BEFORE = set(" \t\n([{-:;,\u2014\u2013")
+
+
+def _is_opening(text: str, i: int) -> bool:
+    """Is the quote mark at text[i] an opening one? Curly marks say so; for a straight mark we
+    look at its neighbours: an opening mark follows a space or opening punctuation and is
+    followed by a non-space; anything else closes."""
+    ch = text[i]
+    if ch == "\u201c":
+        return True
+    if ch == "\u201d":
+        return False
+    before = text[i - 1] if i > 0 else " "
+    after = text[i + 1] if i + 1 < len(text) else " "
+    return before in _OPEN_BEFORE and not after.isspace()
+
+
+def _find_quotes(text: str) -> list[_QuoteMatch]:
+    """Quoted passages: each opening mark paired with the next closing mark, never with another
+    opening one. Text BETWEEN a closing mark and the next opening mark is not a quotation (in
+    scanned judgments marks are often missing, and plain pairing then quotes the narrative)."""
+    found: list[_QuoteMatch] = []
+    open_at: int | None = None
+    for i, ch in enumerate(text):
+        if ch not in "\"\u201c\u201d":
+            continue
+        if _is_opening(text, i):
+            open_at = i  # a second opening mark replaces an unclosed first one
+        elif open_at is not None:
+            inner = text[open_at + 1 : i].strip()
+            if len(inner) >= _MIN_QUOTE_CHARS:
+                found.append(_QuoteMatch(open_at, i + 1, inner))
+            open_at = None
+    return found
+
+
 def _assign_nearest(
-    text: str, pattern: re.Pattern, spans: list[tuple[int, int]], window: int
-) -> dict[int, re.Match]:
+    text: str, matches: list[re.Match | _QuoteMatch], spans: list[tuple[int, int]], window: int
+) -> dict[int, re.Match | _QuoteMatch]:
     """Give each match of `pattern` to the ONE nearest citation span, never across a blank line.
 
     Before this, every citation took the first match within the window, so a quote could be
@@ -173,9 +225,11 @@ def _assign_nearest(
     A citation keeps the first (leftmost) match assigned to it.
     """
     owner: dict[int, re.Match] = {}
-    for m in pattern.finditer(text):
+    for m in matches:
         best: tuple[int, int] | None = None  # (gap, citation index)
         for i, (start, end) in enumerate(spans):
+            if m.start() <= start and end <= m.end():
+                continue  # the citation sits INSIDE this passage: it is quoting someone else
             gap = max(0, m.start() - end, start - m.end())
             lo, hi = min(m.start(), start), max(m.end(), end)
             if gap <= window and "\n\n" not in text[lo:hi] and (best is None or gap < best[0]):
@@ -191,9 +245,20 @@ def _name_is_tight(text: str, name_end: int, cite_start: int) -> bool:
     return not re.search(r"\d", text[name_end:cite_start])
 
 
-def _quote_is_tight(match: re.Match, span: tuple[int, int]) -> bool:
+_SENTENCE_END = re.compile(r"[.!?][\"\u201d')\]]*\s+[A-Z]")
+
+
+def _quote_is_tight(text: str, match: re.Match | _QuoteMatch, span: tuple[int, int]) -> bool:
+    """Close to the citation and no new sentence in between (a quotation followed by a
+    sentence that cites a case for some other point is not a quotation of that case)."""
     gap = max(0, match.start() - span[1], span[0] - match.end())
-    return gap <= _QUOTE_TIGHT_GAP
+    if gap > _QUOTE_TIGHT_GAP:
+        return False
+    if match.end() <= span[0]:  # quote first, citation after
+        between = text[match.end() : span[0]]
+    else:  # citation first, quote after
+        between = text[span[1] : match.start()]
+    return _SENTENCE_END.search(between) is None
 
 
 def extract(text: str) -> list[Citation]:
@@ -205,8 +270,8 @@ def extract(text: str) -> list[Citation]:
     spans = [(st, en) for st, en, _f, _r in structured] + [
         (st, en) for j, (st, en, _n) in enumerate(case_names) if j not in used_case_name_idx
     ]
-    quotes = _assign_nearest(text, _QUOTE, spans, window=200)
-    para_refs = _assign_nearest(text, _PARA_REF, spans, window=80)
+    quotes = _assign_nearest(text, _find_quotes(text), spans, window=200)
+    para_refs = _assign_nearest(text, list(_PARA_REF.finditer(text)), spans, window=80)
 
     def quote_of(k: int) -> str | None:
         return quotes[k].group(1).strip() if k in quotes else None
@@ -226,7 +291,7 @@ def extract(text: str) -> list[Citation]:
                 case_name=attached_names[i][0] if i in attached_names else None,
                 name_tight=i not in attached_names
                 or _name_is_tight(text, attached_names[i][1], start),
-                quote_tight=i not in quotes or _quote_is_tight(quotes[i], span),
+                quote_tight=i not in quotes or _quote_is_tight(text, quotes[i], span),
                 proposition=_proposition(text, span),
                 quoted_text=quote_of(i),
                 para_ref=para_of(i),
@@ -246,7 +311,7 @@ def extract(text: str) -> list[Citation]:
                 span=span,
                 format="CASE_NAME",
                 case_name=cleaned_name,
-                quote_tight=idx not in quotes or _quote_is_tight(quotes[idx], span),
+                quote_tight=idx not in quotes or _quote_is_tight(text, quotes[idx], span),
                 proposition=_proposition(text, span),
                 quoted_text=quote_of(idx),
                 para_ref=para_of(idx),

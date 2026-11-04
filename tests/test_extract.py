@@ -32,3 +32,37 @@ def test_quote_far_from_its_citation_is_loose():
     far = 'He said "a long quoted sentence about statutes". ' + "Then more text. " * 8
     c = extract(far + "See Maneka Gandhi v. Union of India, (1978) 1 SCC 248.")[0]
     assert c.quoted_text and c.quote_tight is False
+
+
+def test_narrative_between_two_quotations_is_not_a_quotation():
+    # The closing mark of the first quote and the opening mark of the second must not pair up.
+    text = (
+        'He said "the first quoted passage is long enough" and then the Court went on to hold '
+        'that interest is payable, see A v. B, (1978) 1 SCC 248, and later "a second quoted '
+        'passage is here too".'
+    )
+    c = extract(text)[0]
+    assert c.quoted_text is None or "went on to hold" not in c.quoted_text
+
+
+def test_curly_and_straight_quotes_both_give_the_quoted_words():
+    words = "These are the quoted words of the court"
+    for q in (f"“{words}”", f'"{words}"'):
+        c = extract(f"A v. B, (1978) 1 SCC 248: {q}.")[0]
+        assert c.quoted_text == "These are the quoted words of the court"
+
+
+def test_a_new_sentence_between_quote_and_citation_makes_the_link_loose():
+    text = (
+        'The Court said "interest is payable on the sum awarded". '
+        "The point arose in A v. B, (1978) 1 SCC 248."
+    )
+    c = extract(text)[0]
+    assert c.quoted_text and c.quote_tight is False
+    tight = extract('See A v. B, (1978) 1 SCC 248: "interest is payable on the sum awarded".')[0]
+    assert tight.quote_tight is True
+
+
+def test_a_citation_inside_a_quotation_does_not_own_that_quotation():
+    text = 'The Court observed "as held in A v. B, (1978) 1 SCC 248 that interest is payable".'
+    assert extract(text)[0].quoted_text is None
