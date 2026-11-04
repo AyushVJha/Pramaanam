@@ -86,7 +86,7 @@ def test_page_assets_are_served_with_a_strict_security_policy(db_path):
     c = TestClient(create_app(db_path))
     page = c.get("/")
     assert "{{" not in page.text  # every placeholder was filled
-    assert "1" in page.text and "Try a sample draft" in page.text
+    assert "1" in page.text and "Run a sample draft" in page.text
     csp = page.headers["content-security-policy"]
     assert "default-src 'self'" in csp and "script-src 'self'" in csp
     assert "<script>" not in page.text  # no inline script, so the policy can forbid it

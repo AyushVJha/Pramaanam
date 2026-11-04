@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pramaan · Citation check for Supreme Court of India judgments</title>
-<meta name="description" content="Upload a draft. Pramaan finds every Supreme Court of India citation, proves it exists, checks the case name and compares each quotation word for word with the judgment.">
+<title>Pramaan | Citation verification for Supreme Court of India judgments</title>
+<meta name="description" content="Checks citations in a draft against the text of Supreme Court of India judgments: whether the judgment exists, whether the case name matches, and whether each quotation appears word for word.">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1220" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F141B" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/static/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/app.css">
 <script src="/static/app.js" defer></script>
 </head>
@@ -17,56 +18,47 @@
 
 <header class="topbar">
   <div class="wrap topbar__inner">
-    <a class="brand" href="/" aria-label="Pramaan home">
-      <svg class="brand__seal" viewBox="0 0 64 64" aria-hidden="true">
-        <circle cx="32" cy="32" r="30" class="seal-bg"/>
-        <circle cx="32" cy="32" r="24" class="seal-ring"/>
-        <path d="M21 33.5l7.5 7.5L44 25" class="seal-tick"/>
-      </svg>
-      <span class="brand__name">Pramaan</span>
-      <span class="badge badge--preview">Preview</span>
-    </a>
+    <a class="brand" href="/" aria-label="Pramaan home">Pramaan</a>
     <nav class="nav" aria-label="Sections">
-      <a href="#how">How it works</a>
+      <a href="#how">Method</a>
       <a href="#statuses">Statuses</a>
       <a href="#accuracy">Accuracy</a>
-      <a href="#privacy">Privacy</a>
+      <a href="#privacy">Privacy and limits</a>
     </nav>
   </div>
 </header>
 
 <main>
-<section class="hero">
-  <div class="wrap hero__grid">
-    <div class="hero__copy">
-      <p class="eyebrow">Citation check · Supreme Court of India</p>
-      <h1>Check every citation<br><em>before the bench does.</em></h1>
-      <p class="lede">Upload a draft. Pramaan finds each Supreme Court citation, proves the
-        judgment exists, checks the case name and year, and compares every quotation word for
-        word with the judgment itself.</p>
-      <ul class="proof-points">
-        <li><span class="dot dot--ok"></span><b>{{CASES}}</b> Supreme Court judgments, from 1950 onwards</li>
-        <li><span class="dot dot--brass"></span>A green tick only on proof, never on a guess</li>
-        <li><span class="dot dot--ink"></span>Your file is checked and discarded, never stored</li>
-      </ul>
+<section class="intro">
+  <div class="wrap intro__grid">
+    <div class="intro__copy">
+      <h1>Citation verification for Supreme Court of India judgments</h1>
+      <p class="lede">Pramaan reads a draft, finds each citation to a Supreme Court judgment, and
+        checks it against the text of the judgment: the citation number, the case name and year,
+        and every quotation, word for word.</p>
+      <dl class="facts">
+        <div><dt>Corpus</dt><dd>{{CASES}} Supreme Court judgments</dd></div>
+        <div><dt>Formats</dt><dd>Neutral citation, SCR, SCC, AIR, SCC OnLine</dd></div>
+        <div><dt>Input</dt><dd>Word, PDF or text, up to {{MB}} MB</dd></div>
+        <div><dt>Retention</dt><dd>The draft is checked and discarded; it is not stored</dd></div>
+      </dl>
     </div>
 
-    <div class="checker card" id="checker">
+    <div class="checker panel" id="checker">
       <div class="tabs" role="tablist" aria-label="How to give your draft">
         <button class="tab is-active" role="tab" aria-selected="true" aria-controls="panel-file" id="tab-file" type="button">Upload a file</button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-text" id="tab-text" type="button" tabindex="-1">Paste text</button>
       </div>
 
       <form id="check-form" method="post" action="/report" enctype="multipart/form-data" novalidate>
-        <div class="panel" id="panel-file" role="tabpanel" aria-labelledby="tab-file">
+        <div class="pane" id="panel-file" role="tabpanel" aria-labelledby="tab-file">
           <label class="drop" id="drop">
             <input type="file" name="draft" id="file-input" accept=".txt,.md,.docx,.pdf">
-            <svg class="drop__icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 30v6a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-6M24 9v20M16 17l8-8 8 8"/></svg>
-            <span class="drop__title" id="drop-title">Drop your draft here</span>
-            <span class="drop__hint" id="drop-hint">or <u>choose a file</u> · Word, PDF or text · up to {{MB}} MB</span>
+            <span class="drop__title" id="drop-title">Choose a file or drop it here</span>
+            <span class="drop__hint" id="drop-hint">.docx, .pdf or .txt, up to {{MB}} MB</span>
           </label>
         </div>
-        <div class="panel" id="panel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
+        <div class="pane" id="panel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
           <label class="sr-only" for="text-input">Paste the text of your draft</label>
           <textarea id="text-input" rows="9" spellcheck="false"
             placeholder="Paste a paragraph or a whole draft, for example:&#10;&#10;The appellant relies on Deepak Ananda Patil v. State of Maharashtra, 2023 INSC 11, para 14, where this Court observed: &quot;…&quot;"></textarea>
@@ -77,11 +69,10 @@
         <div class="actions">
           <button class="btn btn--primary" id="check-btn" type="submit">
             <span class="btn__label">Check citations</span>
-            <kbd class="kbd" aria-hidden="true">⌘↵</kbd>
           </button>
-          <button class="btn btn--ghost" id="sample-btn" type="button">Try a sample draft</button>
+          <button class="btn" id="sample-btn" type="button">Run a sample draft</button>
         </div>
-        <p class="fine">Up to {{N}} citations per draft. Your file is read, checked and discarded; it is not stored.</p>
+        <p class="fine">Up to {{N}} citations per draft. The file is read, checked and discarded; it is not stored.</p>
         <p class="error" id="error" role="alert" hidden></p>
       </form>
       <noscript><p class="fine">JavaScript is off: the button above sends your file and opens the report as a page.</p></noscript>
@@ -92,19 +83,13 @@
 <section class="results wrap" id="results" hidden aria-labelledby="results-title">
   <div class="results__head">
     <div>
-      <p class="eyebrow" id="results-source"></p>
+      <p class="results__source" id="results-source"></p>
       <h2 id="results-title" tabindex="-1"></h2>
     </div>
     <div class="results__actions">
-      <button class="btn btn--ghost btn--sm" id="download-btn" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
-        Download annexure
-      </button>
-      <button class="btn btn--ghost btn--sm" id="copy-btn" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h1"/></svg>
-        Copy summary
-      </button>
-      <button class="btn btn--ghost btn--sm" id="reset-btn" type="button">Check another draft</button>
+      <button class="btn btn--sm" id="download-btn" type="button">Download annexure</button>
+      <button class="btn btn--sm" id="copy-btn" type="button">Copy summary</button>
+      <button class="btn btn--sm" id="reset-btn" type="button">Check another draft</button>
     </div>
   </div>
   <div class="meter" id="meter" aria-hidden="true"></div>
@@ -114,130 +99,123 @@
 </section>
 
 <section class="section" id="how">
-  <div class="wrap">
-    <p class="eyebrow">How it works</p>
-    <h2 class="section__title">Four checks, in the order a careful junior would do them.</h2>
-    <ol class="steps">
-      <li class="step">
-        <span class="step__no">1</span>
-        <h3>Find</h3>
-        <p>Every citation in the draft: neutral (2023 INSC 11), SCR, SCC, AIR and SCC OnLine,
-          with the case name and any quotation beside it. Footnotes in Word files too.</p>
-      </li>
-      <li class="step">
-        <span class="step__no">2</span>
-        <h3>Prove</h3>
-        <p>The citation number must lead to exactly one judgment. SCC and AIR numbers count only
-          when at least two other judgments print the same pairing.</p>
-      </li>
-      <li class="step">
-        <span class="step__no">3</span>
-        <h3>Compare</h3>
-        <p>Both parties of the name must fit, the year must agree, and each quotation is matched
-          word for word against the judgment's text, down to a dropped "not".</p>
-      </li>
-      <li class="step">
-        <span class="step__no">4</span>
-        <h3>Report</h3>
-        <p>One clear status per citation, the reason in a sentence, and the judgment's own words
-          next to yours. Download it as an annexure for the file.</p>
-      </li>
-    </ol>
-    <blockquote class="principle">
-      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" class="seal-bg"/><circle cx="32" cy="32" r="24" class="seal-ring"/><path d="M21 33.5l7.5 7.5L44 25" class="seal-tick"/></svg>
-      <p><b>A machine can raise a flag. It never gives a green tick on a guess.</b>
-        Verified means proven by the number, the name and the text. Anything less is marked for
-        a person to look at.</p>
-    </blockquote>
+  <div class="wrap section__grid">
+    <h2 class="section__title">Method</h2>
+    <div class="section__body">
+      <p class="section__lede">Each citation goes through four stages. A stage that cannot be completed
+        is reported as such; it is never reported as a pass.</p>
+      <ol class="stages">
+        <li><h3>Extraction</h3>
+          <p>Citations are located in the draft: neutral (2023 INSC 11), SCR, SCC, AIR and SCC OnLine,
+            with the case name and any quotation printed beside them. Footnotes in Word files are read.</p></li>
+        <li><h3>Resolution</h3>
+          <p>The citation number must lead to exactly one judgment. A neutral or SCR number is a proof
+            by itself. An SCC or AIR number counts only when at least two other judgments print the same
+            pairing of number and case.</p></li>
+        <li><h3>Comparison</h3>
+          <p>Both parties in the case name must fit the judgment and the year must agree. Each
+            quotation is matched word for word against the text of the judgment, which detects a
+            single dropped &ldquo;not&rdquo;.</p></li>
+        <li><h3>Report</h3>
+          <p>One status per citation, the reason in a sentence, and the judgment's own words beside
+            the draft's. The report can be downloaded as an annexure for the file.</p></li>
+      </ol>
+      <p class="rule"><b>A green status is given only on proof.</b> Verified means the number, the name
+        and the text agree. Anything less is marked for a person to examine. An automated language-model
+        check, where enabled, can lower a result but cannot raise one.</p>
+    </div>
   </div>
 </section>
 
-<section class="section section--tint" id="statuses">
-  <div class="wrap">
-    <p class="eyebrow">What the statuses mean</p>
-    <h2 class="section__title">Plain words, and never “fake” when we simply do not know.</h2>
-    <div class="legend">
-      <article class="legend__item s-ok"><span class="chip chip--ok">Verified</span>
-        <p>The number proves the judgment, the name and year match, and any quotation is word for word. It does <i>not</i> say the judgment supports your argument.</p></article>
-      <article class="legend__item s-review"><span class="chip chip--review">Needs review</span>
-        <p>Not proven, or close but not exact: a near-match quote, one party that differs, a match on names alone. A person should look.</p></article>
-      <article class="legend__item s-bad"><span class="chip chip--bad">Misquote · Name mismatch · Wrong paragraph</span>
-        <p>Said only when the case is proven by its number and the quotation or name is clearly tied to that citation.</p></article>
-      <article class="legend__item s-none"><span class="chip chip--none">Not in corpus</span>
-        <p>No matching judgment in the dataset. Not a finding that it is fake: it may be a High Court case or a reporter we cannot map.</p></article>
-      <article class="legend__item s-noise"><span class="chip chip--noise">Scan noise in source</span>
-        <p>The quotation matches except for what looks like a scanning error in the judgment's text. Compare with the printed page.</p></article>
-      <article class="legend__item s-none"><span class="chip chip--none">Cannot verify</span>
-        <p>The check could not run, for example because the stored judgment has no text.</p></article>
+<section class="section section--alt" id="statuses">
+  <div class="wrap section__grid">
+    <h2 class="section__title">Statuses</h2>
+    <div class="section__body">
+      <table class="table">
+        <thead><tr><th scope="col">Status</th><th scope="col">Meaning</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><span class="tag tag--ok">Verified</span></th>
+            <td>The number identifies the judgment, the name and year agree, and any quotation is word for word. This does not say that the judgment supports the proposition it is cited for.</td></tr>
+          <tr><th scope="row"><span class="tag tag--review">Needs review</span></th>
+            <td>Not proven, or close but not exact: a near-match quotation, one party that differs, or a match on names alone. A person should examine it.</td></tr>
+          <tr><th scope="row"><span class="tag tag--bad">Misquote</span><span class="tag tag--bad">Name mismatch</span><span class="tag tag--bad">Wrong paragraph</span></th>
+            <td>Issued only when the judgment is identified by its number and the quotation or name is clearly tied to that citation.</td></tr>
+          <tr><th scope="row"><span class="tag tag--noise">Scan noise in source</span></th>
+            <td>The quotation matches except where the judgment's text appears to contain a scanning error. Compare with the printed page.</td></tr>
+          <tr><th scope="row"><span class="tag tag--none">Not in corpus</span></th>
+            <td>No matching judgment in the dataset. This is not a finding that the case does not exist: it may be a High Court decision or a report series that cannot be mapped.</td></tr>
+          <tr><th scope="row"><span class="tag tag--none">Cannot verify</span></th>
+            <td>The check could not run, for example because the stored judgment has no text.</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
 
 <section class="section" id="accuracy">
-  <div class="wrap">
-    <p class="eyebrow">Accuracy</p>
-    <h2 class="section__title">Measured, published, and still being measured.</h2>
-    <p class="section__lede">From a held-out test set of citations printed in real judgments, run once on
-      5 November 2026 after every threshold was fixed. Synthetic alterations of real quotations,
-      not real lawyers' drafts, so read these as how the checks behave, not a promise.</p>
-    <div class="stats">
-      <div class="stat"><span class="stat__num">95.8%</span><span class="stat__label">of SCC/AIR citations matched to the right judgment (667 items)</span></div>
-      <div class="stat"><span class="stat__num">0.4%</span><span class="stat__label">matched to a wrong judgment</span></div>
-      <div class="stat"><span class="stat__num">275/275</span><span class="stat__label">genuine quotations verified word for word</span></div>
-      <div class="stat"><span class="stat__num">275/275</span><span class="stat__label">invented quotations caught as misquotes</span></div>
+  <div class="wrap section__grid">
+    <h2 class="section__title">Accuracy</h2>
+    <div class="section__body">
+      <p class="section__lede">Measured on a held-out test set of citations printed in real judgments,
+        run once on 5 November 2026 after every threshold had been fixed. The altered quotations are
+        synthetic alterations of real quotations, not lawyers' drafts, so the figures describe how
+        the checks behave and are not a guarantee.</p>
+      <table class="table table--num">
+        <thead><tr><th scope="col">Measure</th><th scope="col" class="num">Result</th><th scope="col" class="num">Items</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">SCC/AIR citations matched to the correct judgment</th><td class="num">95.8%</td><td class="num">667</td></tr>
+          <tr><th scope="row">SCC/AIR citations matched to a wrong judgment</th><td class="num">0.4%</td><td class="num">3 of 667</td></tr>
+          <tr><th scope="row">Genuine quotations verified word for word</th><td class="num">275 of 275</td><td class="num">275</td></tr>
+          <tr><th scope="row">Invented quotations reported as misquotes</th><td class="num">275 of 275</td><td class="num">275</td></tr>
+          <tr><th scope="row">Altered quotations that still passed as verified</th><td class="num">2 of 1,166</td><td class="num">1,166</td></tr>
+        </tbody>
+      </table>
+      <p class="fine">Both of the altered quotations that passed were read by hand and are explained in
+        the project's notes; one has since been fixed. The text of older scanned judgments contains
+        errors, about 2% of characters on a 40-page sample transcribed by the project itself (not
+        verified by a human reviewer). That is why near matches go to review and not to an accusation.</p>
     </div>
-    <p class="fine">2 of 1,166 altered quotations still passed as verified; both were read by hand and are
-      explained in the project's notes, with one fixed since. The text of older scanned judgments has errors
-      (about 2% of characters on a 40-page sample we transcribed ourselves, not human-verified), which is why near matches go to review rather than to an accusation.</p>
   </div>
 </section>
 
-<section class="section section--tint" id="privacy">
-  <div class="wrap privacy">
-    <div>
-      <p class="eyebrow">Privacy and limits</p>
-      <h2 class="section__title">Your draft stays yours.</h2>
+<section class="section section--alt" id="privacy">
+  <div class="wrap section__grid">
+    <h2 class="section__title">Privacy and limits</h2>
+    <div class="section__body">
+      <dl class="notes">
+        <div><dt>Storage</dt><dd>The file is read into a temporary location, checked and deleted. There is no account, no history, no tracking and no third-party script.</dd></div>
+        <div><dt>Use of AI</dt><dd>The checks are exact comparisons against the judgments. An optional language-model second opinion exists, is switched off on this site, and can only lower a result.</dd></div>
+        <div><dt>Not covered</dt><dd>Whether a judgment supports the argument it is cited for; High Court and tribunal decisions; short forms such as &ldquo;supra&rdquo; and &ldquo;ibid&rdquo;; headers, footers and text boxes in Word files.</dd></div>
+        <div><dt>Status</dt><dd>Preview release. Accuracy is still being measured. This is an automated check of citations and not legal advice; verify against an authorised source.</dd></div>
+      </dl>
     </div>
-    <ul class="ticks">
-      <li><b>Not stored.</b> The file is read into a temporary place, checked and deleted. No account, no history, no tracking, no third-party scripts.</li>
-      <li><b>No AI on your text by default.</b> The checks are exact comparisons against the judgments. An optional AI second opinion exists, is off on this site, and could only ever lower a result.</li>
-      <li><b>What it does not check.</b> Whether the judgment supports your argument; High Court and tribunal cases; short forms such as "supra" and "ibid"; headers, footers and text boxes in Word files.</li>
-      <li><b>Not legal advice.</b> An automated check of citations. Verify against an authorised source. A lawyer decides.</li>
-    </ul>
   </div>
 </section>
 </main>
 
 <footer class="footer">
   <div class="wrap footer__inner">
-    <div class="brand brand--small">
-      <svg class="brand__seal" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" class="seal-bg"/><circle cx="32" cy="32" r="24" class="seal-ring"/><path d="M21 33.5l7.5 7.5L44 25" class="seal-tick"/></svg>
-      <span class="brand__name">Pramaan</span>
-    </div>
+    <p class="footer__name">Pramaan <span lang="hi">(प्रमाण)</span>: proof, evidence.</p>
     <p>{{ATTRIBUTION}}</p>
-    <p class="fine">Pramaan (प्रमाण): proof, evidence. A preview; accuracy is still being measured.</p>
   </div>
 </footer>
 
 <template id="card-tpl">
-  <li class="card cit">
-    <div class="cit__rail"></div>
-    <div class="cit__body">
-      <div class="cit__top">
-        <span class="cit__no"></span>
-        <span class="chip"></span>
-        <code class="cit__code"></code>
-      </div>
-      <h3 class="cit__name"></h3>
-      <p class="cit__raw"></p>
-      <p class="cit__reason"></p>
-      <dl class="cit__facts"></dl>
-      <div class="cit__quote" hidden>
-        <div class="q q--draft"><span class="q__label">Your draft</span><blockquote class="q__text"></blockquote></div>
-        <div class="q q--judgment"><span class="q__label"></span><blockquote class="q__text"></blockquote></div>
-      </div>
-      <ul class="cit__changes" hidden></ul>
+  <li class="cit">
+    <div class="cit__top">
+      <span class="cit__no"></span>
+      <span class="tag"></span>
+      <code class="cit__code"></code>
     </div>
+    <h3 class="cit__name"></h3>
+    <p class="cit__raw"></p>
+    <p class="cit__reason"></p>
+    <dl class="cit__facts"></dl>
+    <div class="cit__quote" hidden>
+      <div class="q q--draft"><span class="q__label">Draft</span><blockquote class="q__text"></blockquote></div>
+      <div class="q q--judgment"><span class="q__label"></span><blockquote class="q__text"></blockquote></div>
+    </div>
+    <ul class="cit__changes" hidden></ul>
   </li>
 </template>
 </body>

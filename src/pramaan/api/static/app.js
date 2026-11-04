@@ -90,7 +90,7 @@
     if (!file) return;
     drop.classList.add("has-file");
     $("#drop-title").textContent = file.name;
-    $("#drop-hint").textContent = `${(file.size / 1024).toFixed(file.size < 10240 ? 1 : 0)} KB · ready to check`;
+    $("#drop-hint").textContent = `${(file.size / 1024).toFixed(file.size < 10240 ? 1 : 0)} KB · ready`;
     hideError();
   }
   fileInput.addEventListener("change", () => showFile(fileInput.files[0]));
@@ -186,7 +186,7 @@
     const existing = $(".spinner", checkBtn);
     if (on && !existing) checkBtn.prepend(el("span", "spinner"));
     if (!on && existing) existing.remove();
-    lbl.textContent = on ? "Checking against the judgments…" : "Check citations";
+    lbl.textContent = on ? "Checking…" : "Check citations";
   }
   function showError(msg) { errorBox.textContent = msg; errorBox.hidden = false; }
   function hideError() { errorBox.hidden = true; }
@@ -270,11 +270,10 @@
     const [kind, label] = STATUS[r.status] || ["none", r.status];
     node.classList.add(`s-${kind}`);
     node.dataset.status = r.status;
-    node.style.animationDelay = `${Math.min(index, 12) * 45}ms`;
     $(".cit__no", node).textContent = String(index + 1).padStart(2, "0");
-    const chip = $(".chip", node);
+    const chip = $(".tag", node);
     chip.textContent = label;
-    chip.classList.add(`chip--${kind}`);
+    chip.classList.add(`tag--${kind}`);
     $(".cit__code", node).textContent = r.status;
     $(".cit__name", node).textContent = r.case_name || prettyTitle(r.case_title) || r.raw;
     $(".cit__raw", node).textContent = r.raw;
@@ -298,13 +297,13 @@
       const original = q.matched_original || "";
       if ((q.status === "verbatim" || q.status === "near_match") && original) {
         const para = q.para_nos && q.para_nos.length && q.para_nos[0] > 0 ? `, para ${q.para_nos[0]}` : "";
-        judgLabel.textContent = `The judgment says${para}`;
+        judgLabel.textContent = `Judgment${para}`;
         const d = diffWords(r.draft_quote, original);
         fillWords(draftText, d.A, d.keepA, "del");
         fillWords(judgText, d.B, d.keepB, "add");
       } else {
         draftText.textContent = r.draft_quote;
-        judgLabel.textContent = "The judgment";
+        judgLabel.textContent = "Judgment";
         judgText.textContent = "These words were not found in the judgment.";
         judgText.style.fontStyle = "italic";
         judgText.style.color = "var(--muted)";
@@ -338,7 +337,7 @@
     const reports = body.citations || [];
     lastReports = reports;
     const c = counts(reports);
-    $("#results-source").textContent = `${sourceLabel} · ${body.date || ""}`;
+    $("#results-source").textContent = `${sourceLabel}${body.date ? ` · ${body.date}` : ""}`;
     $("#results-title").textContent = headline(reports, c);
     $("#disclaimer").textContent = body.disclaimer || "";
 
@@ -363,13 +362,11 @@
     const list = $("#cards");
     list.textContent = "";
     if (!reports.length) {
-      const empty = el("li", "card cit s-none");
-      const bodyDiv = el("div", "cit__body");
-      bodyDiv.append(
+      const empty = el("li", "cit s-none");
+      empty.append(
         el("h3", "cit__name", "Nothing to check"),
-        el("p", "cit__reason", "We look for citations such as 2023 INSC 11, [1973] 1 S.C.R. 1, (2019) 7 SCC 42 or AIR 1960 SC 137. Short forms such as “supra” are not checked."),
+        el("p", "cit__reason", "The checker looks for citations such as 2023 INSC 11, [1973] 1 S.C.R. 1, (2019) 7 SCC 42 or AIR 1960 SC 137. Short forms such as “supra” are not checked."),
       );
-      empty.append(el("div", "cit__rail"), bodyDiv);
       list.append(empty);
     }
     reports.forEach((r, i) => list.append(card(r, i)));
@@ -440,7 +437,7 @@
     results.hidden = true;
     form.reset();
     drop.classList.remove("has-file");
-    $("#drop-title").textContent = "Drop your draft here";
+    $("#drop-title").textContent = "Choose a file or drop it here";
     $("#drop-hint").textContent = $("#drop-hint").dataset.initial || $("#drop-hint").textContent;
     $("#checker").scrollIntoView({ behavior: "smooth", block: "center" });
   });
