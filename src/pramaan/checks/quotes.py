@@ -27,6 +27,8 @@ MIN_SEGMENT_WORDS = 4  # shorter pieces ("...the Act...") match almost anywhere
 MAX_PARA_HITS = 5
 NEGATIONS = {"not", "no", "never", "neither", "nor", "cannot", "without", "none", "nothing"}
 
+# A paragraph number at the start of the quote, or after a sentence end ("... class. 10. A taxing").
+_PARA_NUMBER = re.compile(r"^\s*\d{1,3}\.\s+|(?<=[.?!])\s+\d{1,3}\.\s+(?=[A-Z])")
 _ELLIPSIS = re.compile(r"\.{2,}|…|(?:\.\s){2,}\.")
 _WORD = re.compile(r"\w+")
 
@@ -218,6 +220,13 @@ def check_quote_in_paragraphs(paragraphs: list[tuple[int, str]], quote: str) -> 
     result = _check_segments(paragraphs, quote)
     if result.status != "not_found":
         return result
+    # A quote copied from the judgment may carry its paragraph numbers ("9. The State ... 10. A
+    # taxing statute"). Drop them and look again; the words must still match the judgment.
+    bare = _PARA_NUMBER.sub(" ", quote).strip()
+    if bare != quote:
+        retry = _check_segments(paragraphs, bare)
+        if retry.status != "not_found":
+            return retry
     # Not found as written. Try each '...'-separated piece; a piece that is several sentences of
     # one paragraph with text left out between them is rescued as an omission (near match).
     paras = [(no, normalise(text)) for no, text in paragraphs]

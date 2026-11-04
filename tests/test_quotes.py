@@ -119,3 +119,18 @@ def test_sentences_from_one_paragraph_with_text_left_out_is_near_match_not_misqu
     assert r.status == "near_match" and "omission" in r.flags
     invented = quote.split(". ")[0] + ". Costs shall follow the event in all such matters."
     assert check_quote_in_paragraphs([(5, para)], invented).status == "not_found"
+
+
+def test_paragraph_numbers_inside_a_quote_are_ignored():
+    from pramaan.checks.quotes import check_quote_in_paragraphs
+
+    paras = [
+        (9, "The State enjoys latitude in taxing statutes."),
+        (10, "A taxing statute is not beyond challenge."),
+    ]
+    quote = (
+        "9. The State enjoys latitude in taxing statutes. "
+        "10. A taxing statute is not beyond challenge."
+    )
+    r = check_quote_in_paragraphs(paras, quote)
+    assert r.status in ("verbatim", "near_match")

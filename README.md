@@ -23,15 +23,15 @@ status promises.
 
 | Check | Command | Result |
 |---|---|---|
-| Find the right case from an SCC/AIR number + name (246 items) | `make bench-dev` | 90.2% right case, 0.8% wrong case |
-| Whole pipeline on those items, AI check off | `make bench-pipeline` | 33 VERIFIED, 0 on a wrong case |
+| Find the right case from an SCC/AIR number + name (246 items) | `make bench-dev` | 97.6% right case, 0.4% wrong case |
+| Whole pipeline on those items, AI check off | `make bench-pipeline` | 144 VERIFIED, 0 on a wrong case |
 | Whole pipeline on 896 quote items | `make bench-pipeline-quotes` | 124 of 124 real quotes VERIFIED; 0 of 524 altered or invented quotes VERIFIED |
-| 300 whole real judgments fed in as drafts | `scripts/stress_real_text.py 300` | 2,642 mentions; 238 VERIFIED; 3 accusations, read by hand: two come from garbled scan text, one is unresolved |
+| 300 whole real judgments fed in as drafts | `scripts/stress_real_text.py 300` | 4,348 mentions; 1,169 VERIFIED; 10 accusations (8 MISQUOTE, 2 NAME_MISMATCH); most read by hand are scan noise in the citing text, the rest not individually resolved |
 | Local AI judge (qwen3:8b), 39 noisy items | `bench/eval_support.py` | 0 of 15 negatives called supported; 41.7% of positives accepted; 20.5% gave no valid answer; median 45 s per item (too slow for live use) |
 
 The benchmarks use synthetic alterations of real quotes and citations printed in real judgments, so
 they show the checks behave as designed, not how real lawyers' drafts will fare. Coverage numbers
-(33 VERIFIED of 246) are a floor: the benchmark hides the evidence the citing judgment itself printed.
+(144 VERIFIED of 246) are a floor: the benchmark hides the evidence the citing judgment itself printed.
 
 ## Try it
 

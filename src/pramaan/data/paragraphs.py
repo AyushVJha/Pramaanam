@@ -3,11 +3,16 @@
 docs/DATA_NOTES.md §4 found SC judgments number paragraphs "N. " at the start of a line, but
 a bare regex over that marker also matches stray numbers (page numbers, footnote refs) that
 aren't real paragraph starts. The fix used here: only trust a run of marker lines whose
-numbers strictly increase by 1 — a stray number breaks that run and gets excluded. Everything
-before the run starts (case header, HEADNOTES/catchwords) is discarded as front matter, since
-it isn't part of the court's reasoning.
+numbers strictly increase by 1 — a stray number breaks that run and gets excluded.
 
-When no such run exists (unnumbered judgment), falls back to splitting on blank lines.
+Text that is not in a numbered paragraph is KEPT, as unnumbered paragraphs with NEGATIVE numbers
+(-k ... -1, in reading order, so numbers stay unique and sorted). Before this, everything ahead of
+the first numbered paragraph was thrown away; a judgment whose numbering only starts near its end
+lost almost all its text, and quotes from it looked like inventions (DATA_NOTES 31).
+Real paragraph numbers are always positive, so the paragraph check can ignore unnumbered text.
+
+When no such run exists (unnumbered judgment), the whole text is split on blank lines and numbered
+the same negative way.
 """
 
 import re
@@ -74,16 +79,36 @@ def _split_by_markers(lines: list[tuple[int, str]], marker_indices: list[int]) -
     return paragraphs
 
 
+def _unnumbered(blocks: list[tuple[int, str]]) -> list[Paragraph]:
+    """(page, text) blocks -> paragraphs numbered -k ... -1 in reading order."""
+    cleaned = [(page, _normalise(text)) for page, text in blocks]
+    cleaned = [(page, text) for page, text in cleaned if text]
+    k = len(cleaned)
+    return [
+        Paragraph(para_no=-(k - i), page=page, text=text) for i, (page, text) in enumerate(cleaned)
+    ]
+
+
+def _blocks_of(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    """Group lines into blocks separated by blank lines; a block carries the page it starts on."""
+    blocks: list[tuple[int, str]] = []
+    current: list[str] = []
+    start_page = 0
+    for page, line in lines:
+        if line.strip():
+            if not current:
+                start_page = page
+            current.append(line)
+        elif current:
+            blocks.append((start_page, " ".join(current)))
+            current = []
+    if current:
+        blocks.append((start_page, " ".join(current)))
+    return blocks
+
+
 def _split_by_blank_lines(pages: list[PageText]) -> list[Paragraph]:
-    paragraphs = []
-    para_no = 0
-    for page in pages:
-        for block in re.split(r"\n\s*\n", page.text):
-            text = _normalise(block)
-            if text:
-                para_no += 1
-                paragraphs.append(Paragraph(para_no=para_no, page=page.page_no, text=text))
-    return paragraphs
+    return _unnumbered(_blocks_of(_lines_with_pages(pages)))
 
 
 def split_paragraphs(pages: list[PageText]) -> list[Paragraph]:
@@ -91,5 +116,6 @@ def split_paragraphs(pages: list[PageText]) -> list[Paragraph]:
     lines = _lines_with_pages(pages)
     marker_run = _find_marker_run(lines)
     if marker_run:
-        return _split_by_markers(lines, marker_run)
+        front = _unnumbered(_blocks_of(lines[: marker_run[0]]))
+        return front + _split_by_markers(lines, marker_run)
     return _split_by_blank_lines(pages)

@@ -16,13 +16,17 @@ def _paragraphs(filename: str):
     return split_paragraphs(extract_pages(str(FIXTURES / filename)))
 
 
+def _numbered(paras):
+    return [p for p in paras if p.para_no > 0]
+
+
 def test_margin_letter_layout_full_run():
     """2023_10_936_976_EN.pdf: clean numbering 1-33, no HEADNOTES block, no quoted material.
 
     The real judgment body runs from "1. The core question..." to "33. ..."; hand-counted
     33 numbered paragraphs in the source PDF.
     """
-    paras = _paragraphs("2023_10_936_976_EN.pdf")
+    paras = _numbered(_paragraphs("2023_10_936_976_EN.pdf"))
     assert len(paras) == 33
     assert [p.para_no for p in paras] == list(range(1, 34))
     assert paras[0].text.startswith("The core question that arises")
@@ -35,8 +39,12 @@ def test_short_headnote_layout_strips_frontmatter():
     through the final order); the case header/citation block before "1." must not appear in
     paragraph 1's text.
     """
-    paras = _paragraphs("2023_1_907_912_EN.pdf")
+    everything = _paragraphs("2023_1_907_912_EN.pdf")
+    paras = _numbered(everything)
     assert [p.para_no for p in paras] == [1, 2, 3, 4]
+    # the header is no longer thrown away: it is kept as unnumbered paragraphs (negative numbers)
+    front = [p for p in everything if p.para_no < 0]
+    assert front and any("DELHI DEVELOPMENT AUTHORITY" in p.text for p in front)
     assert paras[0].text.startswith("Feeling aggrieved and dissatisfied")
     assert "CASE DETAILS" not in paras[0].text
     assert "S.C.R." not in paras[0].text
@@ -58,7 +66,28 @@ def test_quoted_material_with_own_numbering_is_a_known_limitation():
     footer ("Headnotes prepared by: ...") after the real final sentence — another known,
     minor imperfection of this M1 splitter, also documented rather than patched over.
     """
-    paras = _paragraphs("2023_15_848_865_EN.pdf")
+    everything = _paragraphs("2023_15_848_865_EN.pdf")
+    paras = _numbered(everything)
+    # the lost opening ("Leave granted." ...) is now kept as unnumbered text, so quotes from it
+    # can still be found (the numbered list itself still starts at 5)
+    assert any(p.para_no < 0 and "Leave granted" in p.text for p in everything)
     assert paras[0].para_no == 5
     assert paras[-1].para_no == 31
     assert paras[-1].text.startswith("Appeal stands dismissed accordingly.")
+
+
+def test_text_before_first_numbered_paragraph_is_kept_unnumbered():
+    from pramaan.data.pdf_text import PageText
+
+    text = "Intro line one.\n\nIntro line two.\n\n1. First.\n2. Second.\n3. Third."
+    pages = [PageText(page_no=1, text=text)]
+    paras = split_paragraphs(pages)
+    assert [p.para_no for p in paras] == [-2, -1, 1, 2, 3]
+    assert paras[0].text == "Intro line one."
+
+
+def test_judgment_with_no_numbering_is_split_on_blank_lines_with_negative_numbers():
+    from pramaan.data.pdf_text import PageText
+
+    paras = split_paragraphs([PageText(page_no=1, text="Alpha text.\n\nBeta text.")])
+    assert [p.para_no for p in paras] == [-2, -1]

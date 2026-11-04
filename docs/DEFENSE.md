@@ -256,3 +256,11 @@ The step refuses and falls through to fuzzy matching. 5 of 390 repeated numbers 
 3. **Why is NAME_MISMATCH only below 0.5 when the match bar is 0.7?** Because an accusation costs more than a review. On dev, 0.7 wrongly accused 17 of 246 correct names (abbreviations, garbled extraction); 0.5 wrongly accused 3 and still caught 96% of random wrong names. In between, the report says "check for an abbreviation".
 4. **How do you stop "Raja Ram v. Union of India" being ticked as "Bhule Ram v. Union of India"?** VERIFIED needs both parties to clear a bar (0.6, chosen on dev). It cuts wrong names ticked from 14 of 73 to 3 of 73. A shared common word (Ram, Singh) still gets through sometimes; I say so in DATA_NOTES.
 5. **Why not build more SCC/AIR coverage from case names?** Measured: 95.4% right on 109 checkable cases, which is not proof and could never earn VERIFIED, and it only helps drafts that give a number without a name. Not built; the probe script is kept.
+
+## Paragraph splitting fix (text outside numbered paragraphs)
+
+1. **How did you find the bug?** By comparing one judgment's PDF text (6.7k characters) with what the database held (499). The benchmarks could not show it because they are made from the stored text.
+2. **Why negative paragraph numbers?** Real paragraph numbers are positive, so negatives never clash with them, stay unique per case and keep reading order; the paragraph check can simply ignore them.
+3. **Why did the resolver improve so much?** The printed SCC/AIR citations in the opening text of judgments were never read, so alias evidence grew from 2,800 to 37,926 rows. It is the same rule (an alias needs two other judgments printing it), with more evidence.
+4. **Why did accusations go up on the stress test?** More citations now resolve, so more are checked (4,348 mentions instead of 2,642). Rate went from about 0.1% to 0.2%, mostly scan noise in the citing text; I added a fragment rule and paragraph-number stripping and report what remains as not individually resolved.
+5. **Is the rebuilt database safe to trust?** Hard invariants pass, the old database is backed up, dev results did not regress, and the test split has not been run.

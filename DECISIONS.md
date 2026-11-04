@@ -219,3 +219,14 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** first match within +-200 characters (old behaviour).
 - **Why:** found by testing a mixed draft: a quote was attached to the neighbouring citation and checked against the wrong judgment (wrong MISQUOTE or a quote reused). 
 - **Trade-off:** a quote placed in a different paragraph from its citation (e.g. in a footnote) is no longer linked; that citation then gets no quote check, never a wrong one.
+
+## Keep text outside numbered paragraphs (negative paragraph numbers)
+- **Choice:** `split_paragraphs` keeps every block of text that is not inside the numbered run, as
+  unnumbered paragraphs numbered -k..-1 in reading order. The paragraph check ignores them
+  (`cannot_check`, never `wrong_paragraph`).
+- **Alternative:** keep discarding it as "front matter"; or store para_no 0 for all of it.
+- **Why:** discarding lost real judgment text (about 2,800 judgments are "thin"; one 4-page judgment
+  kept 499 of 6.7k characters), so a correct quote could come out "not found". Negative numbers keep
+  (case, para_no) unique and sorted, and real paragraph numbers are always positive.
+- **Trade-off:** a few more paragraphs per case (headers, headnotes), so a quote can now match
+  header text. Reversible: rebuild from the raw text layer; old DB backed up outside the repo.

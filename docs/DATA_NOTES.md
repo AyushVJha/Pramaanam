@@ -563,3 +563,17 @@ Load check (2026-11-05, laptop, local server): 60 requests from 20 threads, each
 Characters per page (stored text divided by the highest page that has a paragraph) is under 800 for 2,880 judgments (7.5%), and the gap is not an old-scan effect: it is 633 of 9,082 for the 2000s, 1,009 of 7,942 for the 2010s and 1,010 of 5,074 for the 2020s, against 9 to 122 per decade before 2000. Examples: a 2016 judgment with 797 pages and 187,206 characters (about 235 per page), and a 2008 one with 4 pages and 499 characters. Likely cause: parts of newer PDFs have no text layer; not confirmed. A quote missing from such a text proves little.
 
 Rule: for a judgment of at least 3 pages with under 800 characters per page, a quote that is not found gives NEEDS_REVIEW ("stored text looks incomplete") instead of MISQUOTE. Effect on the dev quote benchmark: invented quotes called MISQUOTE 124 -> 113 (the other 11 are NEEDS_REVIEW), splices 123 -> 112; altered quotes VERIFIED still 0 of 524, real quotes still 124 of 124 VERIFIED. So MISQUOTE recall on invented quotes is now 91% on dev, by design. The 800 and 3 were chosen by looking at the distribution, not tuned against the quote benchmark. `make invariants` now counts these judgments. Not measured: what fraction of the 2,880 truly lack text on some pages (needs the PDFs), and whether page ranges with no text can be detected directly.
+
+## 31. The paragraph splitter threw away text (2026-11-05)
+
+Found by comparing a judgment's PDF with its stored paragraphs: `2008_10_1008_1011` has 6.7k characters of text in the PDF but only 499 were stored. `split_paragraphs` kept only the numbered run and discarded everything before its first paragraph (meant to drop the case header), so a judgment whose numbering starts late lost almost everything before it. Our quote benchmarks did not show this because they are built from the stored text itself.
+
+Fix: text outside the numbered run is kept as unnumbered paragraphs numbered -k..-1 (real paragraph numbers are positive, so they stay unique). The paragraph check treats a quote found only there as `cannot_check`. Database rebuilt from the local text layer (old copy kept outside the repo).
+
+Measured after the rebuild (dev split, same scripts as before; test split not run):
+- paragraphs 478,709 -> 675,341; stored characters 0.997 G -> 1.335 G; `cases_with_thin_text` 2,819 -> 0 (the thin-text rule stays as a safety net).
+- alias evidence rows 2,800 -> 37,926 (the printed SCC/AIR citations in the opening text of judgments were never read before).
+- resolver (bench-dev): in-corpus right 222/246 (90.2%) -> 240/246 (97.6%), wrong case 0.8% -> 0.4%.
+- pipeline dev: VERIFIED 33 -> 144, false VERIFIED 0 -> 0.
+- quote benchmark (pipeline): unchanged (real 124/124 VERIFIED; altered/invented VERIFIED 0/524).
+- stress on 300 real judgments: mentions 2,642 -> 4,348; VERIFIED 238 -> 1,169; accusations 3 -> 14. Two changes followed: a draft party that is only a fragment ("Ors", "Another", "Through LRs", under 4 letters) can no longer give NAME_MISMATCH (now NEEDS_REVIEW), and paragraph numbers inside a quote are ignored on a second look. Now 10 accusations (8 MISQUOTE, 2 NAME_MISMATCH). Read by hand, most MISQUOTEs are OCR noise in the citing judgment's own text (page numbers inside the quote, "meamng", "route•• ha.s"). The rest were not individually resolved: not measured.

@@ -59,3 +59,14 @@ def test_one_matching_party_is_not_a_full_match():
     assert r.verdict == "name_partial"
     ok = compare_identity("Bhule Ram v. Union of India", 2014, "Bhule Ram", union, 2014)
     assert ok.verdict == "match"
+
+
+def test_a_name_with_a_fragment_party_is_never_a_mismatch():
+    from pramaan.checks.identity import compare_identity
+
+    r = compare_identity(
+        "Ors v. State of U.P.", 1955, "Virendra Singh", "State of Uttar Pradesh", 1954
+    )
+    assert r.verdict == "name_partial"
+    r = compare_identity("Ram Lal v. State of Bihar", 1960, "Shyam Das", "Union of India", 1960)
+    assert r.verdict == "name_mismatch"

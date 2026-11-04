@@ -4,6 +4,7 @@ Catches "right citation number, wrong case name" (the number points to some othe
 is a common way for a model to get a citation subtly wrong.
 """
 
+import re
 import sqlite3
 from typing import Literal
 
@@ -23,6 +24,22 @@ NAME_MISMATCH_BELOW = 0.5
 PARTY_MIN = 0.6
 # A report year can be up to this many years after the decision year (DATA_NOTES.md).
 MAX_REPORT_LAG = 2
+
+
+# Words that carry no identity. A party made only of these (or of under 4 letters) is a fragment
+# left by a line break or a footnote ("Ors v. State of U.P."), not a name we can accuse on.
+_GENERIC = {"ors", "anr", "another", "others", "other", "lrs", "lr", "through", "and", "the",
+            "of", "etc", "deceased", "by"}
+
+
+def is_fragment(party: str) -> bool:
+    words = [w for w in re.findall(r"[a-z]+", party.lower()) if w not in _GENERIC]
+    return len("".join(words)) < 4
+
+
+def _has_fragment(draft_name: str) -> bool:
+    parties = split_parties(draft_name)
+    return parties is not None and (is_fragment(parties[0]) or is_fragment(parties[1]))
 
 
 class IdentityResult(BaseModel):
@@ -60,11 +77,12 @@ def compare_identity(
             f"The citation points to '{petitioner} v. {respondent}', "
             f"not '{draft_name}' (name similarity {score:.2f})."
         )
-        if score < NAME_MISMATCH_BELOW:
+        if score < NAME_MISMATCH_BELOW and not _has_fragment(draft_name):
             return IdentityResult(verdict="name_mismatch", name_score=score, explanation=text)
         return IdentityResult(
             verdict="name_partial", name_score=score,
-            explanation=text + " The names are alike but not the same; check for an abbreviation.",
+            explanation=text + " The names are alike but not the same, or part of the name was "
+            "cut off; check the name.",
         )
     both = party_scores(draft_name, petitioner, respondent) if draft_name else None
     if both is not None and min(both) < PARTY_MIN:

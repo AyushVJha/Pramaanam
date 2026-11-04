@@ -33,6 +33,14 @@ def check_paragraph(cited: int | None, quote: QuoteResult) -> ParagraphResult:
             status="cannot_check", cited=cited,
             explanation="The quote was not found, so its paragraph cannot be compared.",
         )
+    numbered = [n for n in quote.para_nos if n > 0]  # negative = text outside numbered paragraphs
+    if not numbered:
+        return ParagraphResult(
+            status="cannot_check", cited=cited,
+            explanation="The quote is in text that is not in a numbered paragraph (for example "
+            "the opening of the judgment), so the paragraph number cannot be compared.",
+        )
+    quote = quote.model_copy(update={"para_nos": numbered})
     # A quote running across a break covers its paragraph and the next one.
     covered = {n + 1 for n in quote.para_nos} | set(quote.para_nos) if quote.spans_paragraphs \
         else set(quote.para_nos)
