@@ -378,3 +378,36 @@ Alias answers on dev by number of independent citing judgments backing the answe
 confidence was changed. What this does suggest for the verdict design: an alias-only answer backed
 by one judgment must not be reported as proof; it needs the case name and year to agree as well.
 Reproduce: `uv run python scripts/alias_witness_dev.py`.
+
+## 16. First look at text engines: embedded layer vs Tesseract (4 Nov 2026) - EXPLORATORY
+
+**How measured.** `bench/eval_ocr_engines.py`, labels in `bench/labels/claude_excerpts.json`. For
+10 pages (one per roughly 4th page of the 40-page small sample, 1955 to 2024) Claude transcribed one
+block of body text from the page image BEFORE looking at any engine output. These are NOT
+human-verified labels (the human check, `viewer_small`, is still open) and Claude can misread
+print. Score = character error rate of the best-matching stretch of the engine's page text, so
+margin letters and running heads do not count; line-end hyphens, quote styles and whitespace are
+normalised. Nothing was tuned on these pages.
+
+**Result (CER, lower is better).**
+
+| | embedded layer | Tesseract psm 3 | psm 4 | psm 6 |
+|---|---|---|---|---|
+| median | 0.016 | 0.002 | 0.004 | 0.020 |
+| mean | 0.030 | 0.019 | 0.029 | 0.041 |
+| worst page | 0.169 | 0.171 | 0.161 | 0.154 |
+
+**What it says, and does not say.**
+- On most of these pages the embedded layer is already close (7 of 10 pages under 3%), and
+  Tesseract with automatic layout (psm 3) is about as good or better (median 0.2%).
+- The embedded layer is not always that good: the page that prompted this work
+  (1955_2_919_924 p1, "settll", "wit~1", words split one per line) is not in the 10, so n=10 may
+  understate its errors. That page was seen with the engine text, so it was not used as a blind label.
+- **The worst page (1961_1_113_117 p1, about 16% for every engine) is a layout problem, not a
+  character problem:** the side notes (the case name printed in the margin) are inserted into the
+  middle of a body sentence by both the embedded layer and Tesseract. A quote spanning that spot
+  would not be found. The same happens with psm 4 and 6 on 1955_1_872_876 p3 (10 to 12%), where
+  psm 3 is clean. Character accuracy alone will not catch this; reading order and side-note
+  handling need their own measurement.
+- Not measured: tables, footnotes, other engines (Docling, Marker, PaddleOCR, a vision model),
+  more than 10 pages, human-verified labels.

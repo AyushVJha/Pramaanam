@@ -19,30 +19,16 @@ Usage: uv run python scripts/build_viewer.py [--small]
 import argparse
 import html
 import json
-import subprocess
-import tempfile
-from pathlib import Path
 
 import pymupdf
 
 from pramaan.config import DATA_DIR
+from pramaan.data.ocr import tesseract_text
 from pramaan.data.pdf_text import extract_raw_pages
 
 GT = DATA_DIR.parent / "bench" / "data" / "ground_truth"
 VIEW = GT / "viewer"
 DPI = 150
-
-
-def tesseract_text(page: pymupdf.Page) -> str:
-    """OCR one page with the installed Tesseract (300 dpi, page segmentation mode 4)."""
-    with tempfile.TemporaryDirectory() as tmp:
-        png = Path(tmp) / "p.png"
-        page.get_pixmap(dpi=300).save(png)
-        subprocess.run(
-            ["tesseract", str(png), str(Path(tmp) / "out"), "--psm", "4", "-l", "eng"],
-            check=True, capture_output=True,
-        )
-        return (Path(tmp) / "out.txt").read_text(encoding="utf-8")
 
 
 def small_sample(cases: list[dict], per_decade: int = 5) -> list[tuple[dict, str]]:
