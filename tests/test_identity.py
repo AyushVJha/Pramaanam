@@ -39,3 +39,12 @@ def test_nothing_to_compare():
 
 def test_name_without_versus_is_not_judged_on_name():
     assert _c("Om Kumar", 2001).verdict == "match"
+
+
+def test_initial_v_in_a_party_name_is_not_the_separator():
+    from pramaan.resolve.names import split_parties
+
+    assert split_parties("P. V. Sivarajan v. The Union of India") == (
+        "P. V. Sivarajan", "The Union of India",
+    )
+    assert split_parties("Ram v. Shyam") == ("Ram", "Shyam")

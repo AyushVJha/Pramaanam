@@ -487,3 +487,13 @@ Candidate machine (specs as reported by the owner of the account, no access gran
 ## 19. Neutral numbers shared by more than one judgment (2026-11-05)
 
 96 (year, number) pairs of INSC citations are printed on 2 or more judgments (14 on 3 or more). Looking at the first rows: some are later orders in the same matter that print the earlier judgment's neutral number (e.g. three Sushil Ansal v. State orders of 2014-2015 all carry 2014 INSC 168); others are different cases (Bhule Ram v. Union of India and Raja Ram v. Union of India both 2014 INSC 222). We have not worked out which are source errors. The resolver returns NEEDS_REVIEW "matches more than one judgment" for these, which is the safe behaviour. Idea, not built: when the draft's own case name matches exactly one of the candidates, resolve to it (number plus name together identify it). Would need its own dev measurement first.
+
+## 20. Full pipeline on the quote benchmark, dev split (2026-11-05)
+
+`bench/eval_pipeline_quotes.py --split dev` (logs/pipeline_quotes_dev.txt): 896 items, each written as a draft citation with the judgment's own unique number, its title, the quote and a paragraph reference; AI check off.
+
+- Altered or invented quotes called VERIFIED: 0 of 524.
+- Real quotes: 124 of 124 VERIFIED. Invented: 124 MISQUOTE. One-word, negation and number changes: all NEEDS_REVIEW. Splices: 123 MISQUOTE, 1 NEEDS_REVIEW.
+- Wrong paragraph far away: 124 of 124 WRONG_PARAGRAPH. Adjacent paragraph (off by one): 123 VERIFIED, 1 WRONG_PARAGRAPH, by design (page breaks shift numbers by one).
+- Found by this run: a name like "P. V. Sivarajan v. Union of India" was split at the initial "V." and flagged NAME_MISMATCH on the case's own title (7 items). `split_parties` now skips a "v." that follows a one-letter initial. Resolver dev and pipeline dev numbers unchanged after the fix.
+- The quote items are synthetic alterations of real quotes, so this shows the checks work as designed; it is not an estimate of real-world lawyer drafts.

@@ -34,10 +34,14 @@ class NameCandidate(BaseModel):
 def split_parties(case_name: str) -> tuple[str, str] | None:
     """'A v. B' -> ('A', 'B'). None when the name has no 'v.' to split on."""
     case_name = " ".join(case_name.split())  # line breaks from the PDF become single spaces
-    parts = _SPLIT.split(case_name, maxsplit=1)
-    if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
-        return None
-    return parts[0].strip(), parts[1].strip()
+    for m in _SPLIT.finditer(case_name):
+        left, right = case_name[: m.start()].strip(), case_name[m.end() :].strip()
+        # "P. V. Sivarajan v. Union": a lone letter before the dot is an initial, not "versus".
+        if re.search(r"(?:^|\s)[A-Za-z]\.$", left) and m.group(0).strip().lower() in ("v.", "v"):
+            continue
+        if left and right:
+            return left, right
+    return None
 
 
 # Corporate suffixes say nothing about WHICH company. A party made only of these (the extractor
