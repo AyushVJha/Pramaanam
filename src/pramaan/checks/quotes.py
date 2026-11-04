@@ -37,6 +37,7 @@ class QuoteResult(BaseModel):
     para_nos: list[int] = []  # paragraphs holding the first piece, best first
     spans_paragraphs: bool = False  # true if a piece runs across two neighbouring paragraphs
     matched_text: str | None = None  # the judgment's own words (lowercased) for the first piece
+    matched_original: str | None = None  # the same stretch with its capitals and punctuation
     changes: list[str] = []  # e.g. ["your quote has 'not', the judgment has 'now'"]
     flags: list[str] = []  # "negation", "number"
     # True when every difference is a single word that looks like a misread of the same word
@@ -285,5 +286,24 @@ def load_paragraphs(con: sqlite3.Connection, case_id: str) -> list[tuple[int, st
     ).fetchall()
 
 
+def original_stretch(paragraph: str, matched: str) -> str | None:
+    """The judgment's own text (capitals, punctuation) for a stretch of normalised words, or
+    None if the words are not found in this paragraph."""
+    text = unicodedata.normalize("NFKC", paragraph)
+    tokens = list(_WORD.finditer(text))
+    words = [t.group().lower() for t in tokens]
+    wanted = matched.split()
+    for i in range(len(words) - len(wanted) + 1):
+        if words[i : i + len(wanted)] == wanted:
+            return " ".join(text[tokens[i].start() : tokens[i + len(wanted) - 1].end()].split())
+    return None
+
+
 def check_quote(con: sqlite3.Connection, case_id: str, quote: str) -> QuoteResult:
-    return check_quote_in_paragraphs(load_paragraphs(con, case_id), quote)
+    paragraphs = load_paragraphs(con, case_id)
+    result = check_quote_in_paragraphs(paragraphs, quote)
+    if result.matched_text and result.para_nos and not result.spans_paragraphs:
+        text = dict(paragraphs).get(result.para_nos[0])
+        if text:
+            result.matched_original = original_stretch(text, result.matched_text)
+    return result

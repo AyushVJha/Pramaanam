@@ -184,5 +184,6 @@ def test_report_shows_the_quote_and_the_judgments_words_for_a_flagged_quote(con,
     r = run(con, cit(quote=altered, para=2), tmp=tmp_path)
     out = render_report([r])
     assert r.status == "NEEDS_REVIEW"
-    assert "Your quote:" in out and "Closest words in the judgment (para 2)" in out
+    assert "Your quote:" in out and "The judgment (para 2) says:" in out
+    assert "Anticipatory bail may be granted where" in out  # original capital A kept
     assert "your quote has 'not'" in out

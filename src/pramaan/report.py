@@ -72,8 +72,11 @@ def _quote_note(r: CitationReport) -> str:
     note = f' Your quote: "{r.draft_quote[:300]}".'
     if r.quote.matched_text and r.quote.status in ("verbatim", "near_match"):
         where = f" (para {r.quote.para_nos[0]})" if r.quote.para_nos else ""
-        words = r.quote.matched_text[:300]
-        note += f' Closest words in the judgment{where}: "{words}" (lowercase, no punctuation).'
+        if r.quote.matched_original:
+            note += f' The judgment{where} says: "{r.quote.matched_original[:400]}".'
+        else:
+            words = r.quote.matched_text[:300]
+            note += f' Closest words in the judgment{where}: "{words}" (lowercase, no punctuation).'
     return note
 
 
