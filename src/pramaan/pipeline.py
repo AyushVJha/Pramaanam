@@ -133,7 +133,7 @@ def check_citation(
     found["identity"] = identity
     if identity.verdict == "name_mismatch":
         return warn("NAME_MISMATCH", identity.explanation)
-    if identity.verdict == "year_mismatch":
+    if identity.verdict in ("year_mismatch", "name_partial"):
         return CitationReport(**found, status="NEEDS_REVIEW", reason=identity.explanation)
 
     if citation.quoted_text:

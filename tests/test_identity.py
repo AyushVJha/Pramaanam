@@ -48,3 +48,12 @@ def test_initial_v_in_a_party_name_is_not_the_separator():
         "P. V. Sivarajan", "The Union of India",
     )
     assert split_parties("Ram v. Shyam") == ("Ram", "Shyam")
+
+
+def test_one_matching_party_is_not_a_full_match():
+    from pramaan.checks.identity import compare_identity
+
+    r = compare_identity("Raja Ram v. Union of India", 2014, "Bhule Ram", "Union of India", 2014)
+    assert r.verdict == "name_partial"
+    ok = compare_identity("Bhule Ram v. Union of India", 2014, "Bhule Ram", "Union of India", 2014)
+    assert ok.verdict == "match"

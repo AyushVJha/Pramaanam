@@ -13,24 +13,32 @@ from pramaan.resolve.names import DECISION_YEAR_SQL, party_similarity, split_par
 
 # Starting value only. Tuned on the dev set and never on test (CLAUDE.md hard rule).
 NAME_MATCH_THRESHOLD = 0.7
+# Each party must fit at least this well for a full "match". The average alone lets
+# "Raja Ram v. Union of India" pass for "Bhule Ram v. Union of India" (DATA_NOTES 23).
+# Chosen on dev (resolve_dev gold cases), never on test.
+PARTY_MIN = 0.5
 # A report year can be up to this many years after the decision year (DATA_NOTES.md).
 MAX_REPORT_LAG = 2
 
 
 class IdentityResult(BaseModel):
-    verdict: Literal["match", "name_mismatch", "year_mismatch", "cannot_check"]
+    verdict: Literal["match", "name_mismatch", "name_partial", "year_mismatch", "cannot_check"]
     name_score: float | None
     explanation: str
 
 
-def name_score(draft_name: str, petitioner: str, respondent: str) -> float | None:
-    """0-1 similarity of 'A v. B' against the stored parties. None if the draft has no 'v.'."""
+def party_scores(draft_name: str, petitioner: str, respondent: str) -> tuple[float, float] | None:
+    """Similarity of each side of 'A v. B' to the stored parties. None if no 'v.' in the draft."""
     parties = split_parties(draft_name)
     if parties is None:
         return None
-    return (
-        party_similarity(parties[0], petitioner) + party_similarity(parties[1], respondent)
-    ) / 2
+    return party_similarity(parties[0], petitioner), party_similarity(parties[1], respondent)
+
+
+def name_score(draft_name: str, petitioner: str, respondent: str) -> float | None:
+    """0-1 average similarity of 'A v. B' against the stored parties. None without a 'v.'."""
+    both = party_scores(draft_name, petitioner, respondent)
+    return None if both is None else (both[0] + both[1]) / 2
 
 
 def compare_identity(
@@ -49,6 +57,15 @@ def compare_identity(
             explanation=(
                 f"The citation points to '{petitioner} v. {respondent}', "
                 f"not '{draft_name}' (name similarity {score:.2f})."
+            ),
+        )
+    both = party_scores(draft_name, petitioner, respondent) if draft_name else None
+    if both is not None and min(both) < PARTY_MIN:
+        return IdentityResult(
+            verdict="name_partial", name_score=score,
+            explanation=(
+                f"Only one party of '{draft_name}' fits '{petitioner} v. {respondent}' "
+                f"(scores {both[0]:.2f} and {both[1]:.2f}); check the name."
             ),
         )
     latest_ok = decision_year + MAX_REPORT_LAG
