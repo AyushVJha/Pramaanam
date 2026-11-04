@@ -66,3 +66,27 @@ def test_a_new_sentence_between_quote_and_citation_makes_the_link_loose():
 def test_a_citation_inside_a_quotation_does_not_own_that_quotation():
     text = 'The Court observed "as held in A v. B, (1978) 1 SCC 248 that interest is payable".'
     assert extract(text)[0].quoted_text is None
+
+
+def test_word_typed_drafts_nbsp_en_dash_and_single_curly_quotes():
+    text = (
+        "The Court held in Deepak Ananda Patil v. State of Maharashtra, 2023 INSC 11, "
+        "at paras 12–14, ‘the second limb of the submission is that there are "
+        "concurrent findings’. See also Maneka Gandhi v. Union of India, (1978) 1 SCC 248."
+    )
+    first, second = extract(text)
+    assert first.case_name == "Deepak Ananda Patil v. State of Maharashtra"
+    assert first.para_ref == 12
+    assert first.quoted_text.startswith("the second limb")
+    assert second.case_name == "Maneka Gandhi v. Union of India"
+
+
+def test_court_apostrophe_is_not_a_closing_quote():
+    text = "The Court’s view in A v. B, (1978) 1 SCC 248 was that the appeal fails."
+    assert extract(text)[0].quoted_text is None
+
+
+def test_lowercase_typed_names_are_left_alone():
+    from pramaan.citations.extract import _clean_case_name
+
+    assert _clean_case_name("ram prasad v. state of bihar") == "ram prasad v. state of bihar"

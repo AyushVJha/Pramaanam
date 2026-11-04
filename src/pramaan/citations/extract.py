@@ -35,7 +35,25 @@ _LEADING_WORDS = re.compile(
 
 
 def _clean_case_name(raw: str) -> str:
-    return _LEADING_WORDS.sub("", raw).strip()
+    """Strip lead-in words ("In", "See") and any sentence that runs into the name: everything up
+    to the last lowercase, non-connector word on the left of "v." ("The Court held in X v. Y"
+    -> "X v. Y"). Names typed wholly in lowercase are left alone."""
+    name = _LEADING_WORDS.sub("", raw).strip()
+    parts = re.split(r"(\s+vs?\.?\s+)", name, maxsplit=1, flags=re.IGNORECASE)
+    if len(parts) == 3:
+        words = parts[0].split()
+        cut = max(
+            (i for i, w in enumerate(words)
+             if w[0].islower() and w.lower().strip(".,'-") not in _CONNECTOR_WORDS),
+            default=None,
+        )
+        if cut is not None and cut < len(words) - 1:
+            rest = words[cut + 1 :]
+            while rest and rest[0].lower() in _CONNECTOR_WORDS:
+                rest = rest[1:]
+            if rest:
+                name = " ".join(rest) + parts[1] + parts[2]
+    return name
 
 
 class Citation(BaseModel):
@@ -202,7 +220,17 @@ def _find_quotes(text: str) -> list[_QuoteMatch]:
     scanned judgments marks are often missing, and plain pairing then quotes the narrative)."""
     found: list[_QuoteMatch] = []
     open_at: int | None = None
+    single_at: int | None = None  # a curly single quotation, tracked apart from double marks
     for i, ch in enumerate(text):
+        if ch == "\u2018":
+            single_at = i
+        elif ch == "\u2019" and single_at is not None:
+            after = text[i + 1] if i + 1 < len(text) else " "
+            if not after.isalnum():  # "Court's" is an apostrophe, not a closing mark
+                inner = text[single_at + 1 : i].strip()
+                if len(inner) >= _MIN_QUOTE_CHARS:
+                    found.append(_QuoteMatch(single_at, i + 1, inner))
+                single_at = None
         if ch not in "\"\u201c\u201d":
             continue
         if _is_opening(text, i):
@@ -212,7 +240,7 @@ def _find_quotes(text: str) -> list[_QuoteMatch]:
             if len(inner) >= _MIN_QUOTE_CHARS:
                 found.append(_QuoteMatch(open_at, i + 1, inner))
             open_at = None
-    return found
+    return sorted(found, key=lambda m: m.start())
 
 
 def _assign_nearest(
