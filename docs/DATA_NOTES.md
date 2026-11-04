@@ -505,3 +505,9 @@ Checked on a made-up line of 12 citations. Recognised: SCC, SCC OnLine, AIR, neu
 ## 22. The 22 dev items where the true case is in the corpus but the result is NOT_FOUND_IN_CORPUS (2026-11-05)
 
 Read all 22 (`bench/eval_pipeline.py --split dev`). None is a wrong answer; they are misses of the safe kind. Causes, by count of what I could read from the names: draft name is an acronym or short form (LIC, DDA, CBSE, RBI, Govt. of India); draft name cut by the extractor on a line break or "Ltd." (about 8); stored title differs a lot from the draft's (about 4, e.g. "Osmania University v. Chancellor" vs "D.S. Reddy v. Chancellor, Osmania University"); the SCC number is not in the alias table at all and the name is too different. Not fixed: acronym expansion could raise recall but fuzzy matches can never reach VERIFIED, so the gain is only a better hint in a NEEDS_REVIEW.
+
+## 23. Shared neutral numbers decided by the draft's name (2026-11-05)
+
+`resolve_exact` now picks one judgment among those sharing a neutral number only if the draft's name fits it at least 0.7 AND beats every other candidate by 0.15 (NAME_PICK_MARGIN). Check: for the 96 shared numbers (216 judgments), using each judgment's own title as the draft name: 75 resolved to the right judgment, 141 stayed ambiguous (identical or near-identical names, e.g. repeated orders in one matter), 0 resolved to a wrong one. The resolver dev benchmark is unchanged (90.2% / 0.8% wrong).
+
+Side finding: the identity threshold (0.7 on the average of two parties) is generous when one party is "Union of India" on both sides: "Raja Ram v. Union of India" scores at or above 0.7 against "Bhule Ram v. Union of India". Not changed; tightening it needs its own dev measurement.

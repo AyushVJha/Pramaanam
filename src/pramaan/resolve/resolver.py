@@ -12,6 +12,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from pramaan.checks.identity import NAME_MATCH_THRESHOLD, name_score
 from pramaan.citations.extract import Citation
 from pramaan.citations.normalise import ParsedCitation
 from pramaan.resolve.names import DECISION_YEAR_SQL, find_name_candidates
@@ -61,8 +62,42 @@ def lookup_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> list[Candid
     return [Candidate(case_id=r[0], title=r[1], year=r[2], score=1.0) for r in rows]
 
 
-def resolve_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> Resolution | None:
-    """An exact-number resolution, or None when the number is not in the corpus at all."""
+NAME_PICK_MARGIN = 0.15  # starting value; checked on the shared-number cases, not tuned on test
+
+
+def _only_name_match(
+    con: sqlite3.Connection, hits: list[Candidate], case_name: str | None
+) -> Candidate | None:
+    """The candidate whose parties clearly fit the draft's name best, else None.
+
+    "Clearly" = it passes the identity threshold and beats every other candidate by
+    NAME_PICK_MARGIN. (The average over two parties is generous when one side is "Union of
+    India" for both, so a bare threshold would not separate Bhule Ram from Raja Ram.)"""
+    if not case_name:
+        return None
+    scored = []
+    for hit in hits:
+        row = con.execute(
+            "SELECT petitioner, respondent FROM cases WHERE cnr = ?", (hit.case_id,)
+        ).fetchone()
+        score = name_score(case_name, row[0] or "", row[1] or "")
+        if score is not None:
+            scored.append((score, hit))
+    scored.sort(key=lambda t: -t[0])
+    if not scored or scored[0][0] < NAME_MATCH_THRESHOLD:
+        return None
+    if len(scored) > 1 and scored[0][0] - scored[1][0] < NAME_PICK_MARGIN:
+        return None
+    return scored[0][1]
+
+
+def resolve_exact(
+    con: sqlite3.Connection, parsed: ParsedCitation, case_name: str | None = None
+) -> Resolution | None:
+    """An exact-number resolution, or None when the number is not in the corpus at all.
+
+    When the source gave one number to several judgments, the draft's own case name may pick
+    exactly one of them (number and name together); otherwise it stays ambiguous."""
     hits = lookup_exact(con, parsed)
     if not hits:
         return None
@@ -70,7 +105,14 @@ def resolve_exact(con: sqlite3.Connection, parsed: ParsedCitation) -> Resolution
         return Resolution(
             case_id=hits[0].case_id, method=_EXACT_METHOD[parsed.reporter], confidence=1.0
         )
-    # A few neutral numbers were given to several cases in the source data. Do not guess.
+    # A few neutral numbers were given to several cases in the source data. Do not guess,
+    # unless the draft's name fits exactly one of them.
+    chosen = _only_name_match(con, hits, case_name)
+    if chosen is not None:
+        return Resolution(
+            case_id=chosen.case_id, method=_EXACT_METHOD[parsed.reporter], confidence=1.0,
+            alternatives=hits[:MAX_ALTERNATIVES],
+        )
     return Resolution(
         case_id=None, method="ambiguous", confidence=0.0, alternatives=hits[:MAX_ALTERNATIVES]
     )
@@ -154,7 +196,7 @@ def resolve(
     """Exact -> alias -> fuzzy. `exclude_case` and `exclude_citing` are for benchmarks only."""
     year = citation.parsed.year if citation.parsed else None
     if citation.parsed is not None:
-        exact = resolve_exact(con, citation.parsed)
+        exact = resolve_exact(con, citation.parsed, citation.case_name)
         if exact is not None:
             return exact
         alias = resolve_alias(con, citation.parsed, exclude_citing)

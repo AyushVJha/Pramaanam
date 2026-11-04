@@ -189,3 +189,33 @@ def test_word_choice_is_deterministic():
 
     # Four 5-letter words tie on length. The two kept must be the first two alphabetically.
     assert fts_query("Zebra Yacht Xerox Wagon", "Union") == '"WAGON" OR "XEROX" OR "UNION"'
+
+
+def test_shared_neutral_number_is_decided_by_the_drafts_name_only_if_unique():
+    import sqlite3
+
+    from pramaan.data.build_db import SCHEMA
+
+    con = sqlite3.connect(":memory:")
+    con.executescript(SCHEMA)
+    for cnr, pet, res in [("A", "Bhule Ram", "Union of India"), ("B", "Raja Ram", "Union of India"),
+                          ("C", "Sushil Ansal", "State"), ("D", "Sushil Ansal", "State")]:
+        con.execute(
+            "INSERT INTO cases (cnr, title, petitioner, respondent, year, decision_date) "
+            "VALUES (?, ?, ?, ?, 2014, '01-01-2014')", (cnr, f"{pet} versus {res}", pet, res),
+        )
+    for cnr, page in [("A", 222), ("B", 222), ("C", 168), ("D", 168)]:
+        con.execute(
+            "INSERT INTO case_citations VALUES (?, 'INSC', 2014, NULL, ?, 'raw')", (cnr, page)
+        )
+
+    def cit(name, page):
+        raw = f"2014 INSC {page}"
+        return Citation(
+            raw=raw, span=(0, 0), format="NEUTRAL", proposition="", case_name=name,
+            parsed=ParsedCitation(reporter="INSC", year=2014, volume=None, page=page),
+        )
+
+    assert resolve(con, cit("Bhule Ram v. Union of India", 222)).case_id == "A"
+    assert resolve(con, cit("Sushil Ansal v. State", 168)).method == "ambiguous"
+    assert resolve(con, cit(None, 222)).method == "ambiguous"
