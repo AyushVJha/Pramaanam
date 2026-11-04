@@ -44,8 +44,7 @@ Not measured: sustained load on a small host, behaviour behind a real proxy.
 | PRAMAAN_JUDGE_BACKEND / _MODEL, PRAMAAN_OLLAMA_URL, PRAMAAN_OPENAI_URL | judge model settings |
 
 ## Before it goes public
-1. Employment IP clause cleared (SPEC section 11).
-2. Resolver test split run once, README numbers final.
-3. The page says "Preview" and states that accuracy is still being measured.
-4. A real draft tested end to end, including footnotes from a file saved by Word.
-5. Free-host terms checked: Hugging Face Docker Spaces may need a paid plan.
+1. Resolver test split run once, README numbers final.
+2. The page says "Preview" and states that accuracy is still being measured.
+3. A real draft tested end to end, including footnotes from a file saved by Word.
+4. Free-host terms checked: Hugging Face Docker Spaces may need a paid plan.
