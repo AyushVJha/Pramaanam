@@ -258,4 +258,9 @@ Measured with `scripts/explore_parallel_citations.py` (log `logs/explore_paralle
 Resolver effect, dev split only, with each item's own citing judgment left out of the evidence (`bench/eval_resolve.py --split dev`, logs `m3_dev_before_alias.txt` and `m3_dev_after_alias.txt`):
 - correct: 209/246 (85.0%) to 223/246 (90.7%); wrong case: 3 to 1.
 - Hidden-case lookalike match (leave-one-out): 22/246 (8.9%) before and after.
-- The test split has NOT been run with the alias step. Run it once, as the final check.
+
+Test split, run once with the alias step (threshold 0.85 unchanged, nothing tuned; log `logs/m3_test_after_alias.txt`):
+- correct: 567/667 (85.0%) to 600/667 (90.0%); wrong case: 5 (0.7%) to 6 (0.9%).
+- Hidden-case lookalike match (leave-one-out): 48/667 (7.2%) to 49/667 (7.3%).
+- Test is consistent with dev (90.7%). The gain is real but modest, and wrong-case answers and lookalike matches did not go down: one more of each. Per format: AIR 151 to 167 correct, SCC 404 to 421, SCC OnLine unchanged at 12 (the alias step does not cover it).
+- The test split has now been run twice in total for the resolver: once for the M3 result, once for this step. The step was designed and checked on dev only.
