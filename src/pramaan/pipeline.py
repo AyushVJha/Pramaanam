@@ -153,6 +153,15 @@ def check_citation(
         return CitationReport(**found, status="NEEDS_REVIEW", reason=identity.explanation)
 
     if citation.quoted_text:
+        has_text = con.execute(
+            "SELECT 1 FROM paragraphs WHERE case_id = ? LIMIT 1", (case_id,)
+        ).fetchone()
+        if not has_text:  # the source has no text for this judgment: nothing to compare with
+            return CitationReport(
+                **found, status="CANNOT_VERIFY", draft_quote=citation.quoted_text,
+                reason="The judgment exists, but the dataset has no text for it, so the quote "
+                "cannot be checked. This says nothing about whether the quote is accurate.",
+            )
         quote = check_quote(con, case_id, citation.quoted_text)
         found["quote"] = quote
         found["draft_quote"] = citation.quoted_text

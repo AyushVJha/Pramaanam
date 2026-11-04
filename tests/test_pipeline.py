@@ -187,3 +187,10 @@ def test_report_shows_the_quote_and_the_judgments_words_for_a_flagged_quote(con,
     assert "Your quote:" in out and "The judgment (para 2) says:" in out
     assert "Anticipatory bail may be granted where" in out  # original capital A kept
     assert "your quote has 'not'" in out
+
+
+def test_quote_against_a_judgment_with_no_text_is_cannot_verify_not_misquote(con, tmp_path):
+    con.execute("DELETE FROM paragraphs WHERE case_id = 'C1'")
+    r = run(con, cit(quote="Anticipatory bail may be granted where the court finds"), tmp=tmp_path)
+    assert r.status == "CANNOT_VERIFY" and "no text" in r.reason
+    assert run(con, cit(), tmp=tmp_path, use_llm=False).status == "VERIFIED"  # no quote given
