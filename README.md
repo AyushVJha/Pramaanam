@@ -1,17 +1,68 @@
 # Pramaan (प्रमाण)
 
-An open benchmark and verification pipeline for citations to Indian Supreme Court judgments. See [SPEC.md](SPEC.md) for the full specification.
+Checks the citations in a legal draft against the Supreme Court of India's own judgments. For each
+citation it answers: does this judgment exist, is it the case the draft names, do the quoted words
+appear in it, at the paragraph cited? It reports evidence, never a verdict on the law. See
+[SPEC.md](SPEC.md) for the plan and [docs/CLAIM_CONTRACT.md](docs/CLAIM_CONTRACT.md) for exactly what each
+status promises.
 
-**Status:** Working prototype: CLI and web demo run on the full corpus (0.9 s for a 3-citation draft with the AI check off). VERIFIED needs deterministic proof and the AI check is advisory only (docs/CLAIM_CONTRACT.md). On the resolver benchmark, dev split, 0 of 246 citations were VERIFIED on a wrong case (`make bench-pipeline`); coverage is a floor of 34 VERIFIED. AI check, local qwen3:8b via Ollama, dev set of 39 items (positives are noisy, `logs/support_qwen3_8b.json`): 0 of 15 negatives judged supported, 41.7% of 24 positives accepted, 20.5% gave no valid answer, median 45 s per item on this laptop, so too slow for interactive use. Test split not run. Layout second reading is built but converts judgments on demand (a whole-corpus run needs ~158 h on a laptop). Docker image never built. Fresh-clone check (2026-11-05): `uv sync`, `make data-sample` (28 s), `make db-sample` (67 s, 2023 only), `make test` (218 passed, 1 skipped without the layout extra), `make lint` and `pramaan check` all ran from a new clone. M4 (quote and paragraph checks) done on a synthetic benchmark: altered quotes are caught, but real quotes between judgments rarely match word for word because old cases carry OCR noise (docs/DATA_NOTES.md section 12). M3 resolver: 85.0% of SCC/AIR/SCC OnLine citations that carry a case name resolve to the right case on test before the SCC/AIR alias step; with it, 90.0% (600/667) on test, 0.9% wrong case. M2 labels are mostly Claude-labelled, not human gold. M5 (support judge) is built and tested with a fake model (`pramaan check draft.txt --no-llm` runs on the full corpus); no real LLM call has been made yet, so judge accuracy, cost and latency are not measured.
+**Status: working prototype, not a product.** Dev-split results only; the test split has not been run.
 
+## What you get
+
+| Status | Meaning |
+|---|---|
+| VERIFIED | The citation number is proven to identify a judgment, name and year agree, and any quote is word-for-word. It does **not** say the judgment supports your argument. |
+| NEEDS_REVIEW | A person must look: ambiguous or unproven match, near-match quote, one party of the name differs, or a link we are unsure of. |
+| MISQUOTE, WRONG_PARAGRAPH, NAME_MISMATCH | Only said when the case is proven by its number and the quote or name is clearly tied to that citation. |
+| NOT_FOUND_IN_CORPUS | Not in the dataset. Never "fake": it may be another court, or an SCC/AIR number we cannot map. |
+| LOW_FIDELITY_SOURCE | The quote matches except for what looks like scan noise in the source text. |
+| UNSUPPORTED, CONTRADICTED | Optional AI second opinion (off by default); it can lower a result, never raise one. |
+
+## Results (dev split, from scripts in this repo)
+
+| Check | Command | Result |
+|---|---|---|
+| Find the right case from an SCC/AIR number + name (246 items) | `make bench-dev` | 90.2% right case, 0.8% wrong case |
+| Whole pipeline on those items, AI check off | `make bench-pipeline` | 33 VERIFIED, 0 on a wrong case |
+| Whole pipeline on 896 quote items | `make bench-pipeline-quotes` | 124 of 124 real quotes VERIFIED; 0 of 524 altered or invented quotes VERIFIED |
+| 300 whole real judgments fed in as drafts | `scripts/stress_real_text.py 300` | 2,642 mentions; 238 VERIFIED; 3 accusations, read by hand: two come from garbled scan text, one is unresolved |
+| Local AI judge (qwen3:8b), 39 noisy items | `bench/eval_support.py` | 0 of 15 negatives called supported; 41.7% of positives accepted; 20.5% gave no valid answer; median 45 s per item (too slow for live use) |
+
+The benchmarks use synthetic alterations of real quotes and citations printed in real judgments, so
+they show the checks behave as designed, not how real lawyers' drafts will fare. Coverage numbers
+(33 VERIFIED of 246) are a floor: the benchmark hides the evidence the citing judgment itself printed.
 
 ## Try it
 
 ```
 uv sync
-make demo                      # web page at http://127.0.0.1:8000 (needs pramaan.db: make db)
+make data-sample && make db-sample    # a small 2023-only database, about 2 minutes
+make test && make lint
 uv run pramaan check demo/sample_draft.txt --no-llm
+uv run pramaan check demo/mixed_draft.txt --no-llm       # one example of each kind of problem
 uv run pramaan check draft.docx --no-llm --format html --out report.html
+make demo                                                # web page at http://127.0.0.1:8000
 ```
 
-Local mode (`--no-llm`) makes no network call. The AI support check is off by default.
+Drafts can be .txt, .md, .docx (footnotes included) or a PDF with a text layer. The full corpus
+(38,397 judgments) needs `make db` and about 2 GB. Local mode makes no network call.
+
+## Limits you should know
+
+- **Coverage.** The dataset holds Supreme Court judgments only, and SCC/AIR numbers resolve only when
+  another judgment printed the pair with an SCR or neutral number. Many SCC/AIR numbers come back
+  NOT_FOUND although the judgment is in the corpus ([docs/DATA_NOTES.md](docs/DATA_NOTES.md) 26).
+- **Text quality.** The judgments' text is an embedded scan OCR with errors and side notes spliced in.
+  A second reading with a layout engine exists but is only built on demand (a whole-corpus run needs
+  about 158 hours on a laptop). Human-checked text accuracy is **not measured** yet.
+- **Not checked:** the legal argument; "supra", "ibid" and "id."; tables and footnotes inside judgments;
+  SCC sub-series (Cri, L&S), SCALE and JT citations; scanned PDF drafts; names typed in lowercase.
+- **Names.** Names sharing a common word ("Mohan Lal Sharma" / "Mohan Das") can still pass.
+- **Not run:** the test split, the Docker image (no Docker on the dev machine), any public deployment.
+
+## Data and credit
+
+Judgments come from the open CC-BY-4.0 dataset
+[vanga/indian-supreme-court-judgments](https://github.com/vanga/indian-supreme-court-judgments)
+(originally from the Supreme Court's public site). No paid or third-party legal database is used.
