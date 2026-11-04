@@ -23,6 +23,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse
+from starlette.concurrency import run_in_threadpool
 
 from pramaan import config
 from pramaan.api.ratelimit import RateLimiter
@@ -131,7 +132,7 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
     ) -> str:
         throttle(request)
         data = await draft.read(MAX_UPLOAD_BYTES + 1)
-        reports = run_check(draft, data, bool(use_llm))
+        reports = await run_in_threadpool(run_check, draft, data, bool(use_llm))
         model = config.JUDGE_MODEL if use_llm else None
         return render_html(
             reports, source=draft.filename or "draft", date=time.strftime("%Y-%m-%d"),
@@ -144,7 +145,7 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
     ) -> dict:
         throttle(request)
         data = await draft.read(MAX_UPLOAD_BYTES + 1)
-        reports = run_check(draft, data, use_llm)
+        reports = await run_in_threadpool(run_check, draft, data, use_llm)
         return {
             "date": time.strftime("%Y-%m-%d"), "disclaimer": DISCLAIMER,
             "attribution": ATTRIBUTION, "llm_used": use_llm,
