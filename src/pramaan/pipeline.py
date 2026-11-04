@@ -107,10 +107,20 @@ def check_citation(
                 **base, status="NEEDS_REVIEW", resolution=resolution,
                 reason="The citation number matches more than one judgment; not guessing.",
             )
+        if citation.parsed is not None and citation.parsed.reporter in ("SCC", "AIR", "SCC_ONLINE"):
+            reason = (
+                f"This {citation.parsed.reporter.replace('_', ' ')} number is not in our table of "
+                "parallel citations, so we cannot tell which judgment it is. The judgment may "
+                "well be in the corpus under its SCR or neutral number. This does not mean the "
+                "case is fake: look it up in a law report."
+            )
+        else:
+            reason = (
+                "No matching judgment in the corpus. This does not mean the case is fake: "
+                "it may be a High Court case, or use a reporter this dataset does not index."
+            )
         return CitationReport(
-            **base, status="NOT_FOUND_IN_CORPUS", resolution=resolution,
-            reason="No matching judgment in the corpus. This does not mean the case is fake: "
-            "it may be a High Court case, or use a reporter this dataset does not index.",
+            **base, status="NOT_FOUND_IN_CORPUS", resolution=resolution, reason=reason,
         )
 
     case_id = resolution.case_id
