@@ -30,7 +30,7 @@ bench-test:
 	@echo "(M3 and M4 only. Run on test once thresholds are fixed. Full pipeline in M7.)"
 
 demo:
-	@echo "demo: implemented in M9 (runs the web demo locally)"
+	uv run uvicorn pramaan.api.app:app --host 127.0.0.1 --port 8000
 
 # Load .env (if present) so PRAMAAN_* settings reach python.
 -include .env

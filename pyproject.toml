@@ -11,6 +11,9 @@ dependencies = [
     "pandas>=2.2",
     "rapidfuzz>=3.9",
     "python-docx>=1.2.0",
+    "fastapi>=0.162.0",
+    "uvicorn>=0.54.0",
+    "python-multipart>=0.0.33",
 ]
 
 [project.scripts]
@@ -20,6 +23,7 @@ pramaan = "pramaan.cli:main"
 dev = [
     "ruff>=0.6",
     "pytest>=8.0",
+    "httpx>=0.28.1",
 ]
 
 [tool.ruff]

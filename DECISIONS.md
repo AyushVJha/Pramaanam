@@ -164,3 +164,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** PDF output and a Word add-in. Deferred: a PDF needs another dependency, and an add-in is a bigger product. Print the HTML to PDF in the meantime.
 - **Local mode:** `--no-llm` makes no network call and sends nothing off the machine, which is what a lawyer with a confidential draft needs.
 - **Limits:** headers, footers and text boxes in Word files are not read. Footnote reading was tested on a hand-built footnotes.xml in the standard Word format, not on a file saved by Word itself: try a real draft before relying on it.
+
+### Web demo and API: FastAPI, local mode by default, nothing stored (M9 start)
+- **Choice:** one FastAPI app (`pramaan.api.app`) with a plain HTML upload page (no JavaScript), `POST /report` (annexure as HTML), `POST /check` (JSON) and `GET /health`. Dependencies added with approval: fastapi, uvicorn, python-multipart; `httpx` is dev-only (test client). `make demo` runs it on 127.0.0.1:8000.
+- **Privacy and safety defaults:** uploads are processed in a temp folder that is deleted at once; nothing is stored or logged. The AI support check is off unless the operator sets `PRAMAAN_ENABLE_LLM=1`, and a visitor must also tick it. Upload is capped at 2 MB and 60 citations. Unsupported files and corrupt Word files return a clean 400.
+- **Alternative:** Gradio (fastest on Hugging Face Spaces, but a large dependency and less control over the report) or a Next.js front end (a second codebase).
+- **Trade-off / not done:** no rate limiting yet, so a public host needs one in front; each request opens its own read-only database connection; the 1.6 GB database must be present on the host. The SPEC target "10 citations in under ~30 s" is not measured.
