@@ -1,4 +1,4 @@
-.PHONY: invariants setup data-sample db db-sample test lint bench-dev bench-test demo
+.PHONY: bench-pipeline invariants setup data-sample db db-sample test lint bench-dev bench-test demo
 
 setup:
 	uv sync
@@ -38,3 +38,6 @@ export
 
 invariants:
 	uv run python scripts/check_invariants.py
+
+bench-pipeline:
+	uv run python bench/eval_pipeline.py --split dev
