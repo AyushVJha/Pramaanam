@@ -158,3 +158,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Why it is safe:** 99.0% precision on held-out judgments; 385 of 390 repeated numbers agree. Alias confidence is set to 0.99, which is that measured figure, not a guess.
 - **Trade-off:** small. Only numbers that some judgment prints next to an SCR/neutral number are known (1,839 in the whole corpus), so most SCC/AIR citations still go to the fuzzy step. Dev accuracy 85.0% to 90.7%, test not yet run. Stale or mistyped numbers inside judgments become wrong rows; the conflict rule catches only repeats.
 - **Schema change approved by the user** (CLAUDE.md rule). `build_db` now builds the table last; an older database without it still works, the step is skipped.
+
+### Word input and the annexure report (product step)
+- **Choice:** `pramaan check` reads .txt, .md and .docx (`python-docx`, added with the user's approval). Footnotes and endnotes are read from the docx XML with the standard library and appended after the body, because Indian drafts often keep citations there. The result can be written as text, Markdown, HTML or JSON (`--format`, `--out`). Markdown and HTML carry the disclaimer, a line saying which checks ran (and that the support check was not run, when so), and a legend of the statuses. HTML output is escaped.
+- **Alternative:** PDF output and a Word add-in. Deferred: a PDF needs another dependency, and an add-in is a bigger product. Print the HTML to PDF in the meantime.
+- **Local mode:** `--no-llm` makes no network call and sends nothing off the machine, which is what a lawyer with a confidential draft needs.
+- **Limits:** headers, footers and text boxes in Word files are not read. Footnote reading was tested on a hand-built footnotes.xml in the standard Word format, not on a file saved by Word itself: try a real draft before relying on it.

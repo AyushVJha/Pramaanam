@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 from pramaan import config
+from pramaan.data.draft_reader import read_draft
 from pramaan.pipeline import check_text
 from pramaan.report import render_html, render_markdown, render_report, report_to_dicts
 
@@ -27,7 +28,12 @@ def main(argv: list[str] | None = None) -> None:
     if not args.db.exists():
         sys.exit(f"Database not found: {args.db}. Run `make db` first.")
     con = sqlite3.connect(f"file:{args.db}?mode=ro", uri=True)
-    text = args.draft.read_text(encoding="utf-8")
+    try:
+        text = read_draft(args.draft)
+    except (ValueError, OSError) as e:
+        sys.exit(str(e))
+    if args.draft.suffix.lower() == ".docx":
+        print("Note: headers, footers and text boxes are not read.", file=sys.stderr)
     reports = check_text(con, text, use_llm=not args.no_llm, model=args.model)
     use_llm = not args.no_llm
     model = (args.model or config.JUDGE_MODEL) if use_llm else None

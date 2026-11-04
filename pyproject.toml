@@ -10,6 +10,7 @@ dependencies = [
     "pyarrow>=16.0",
     "pandas>=2.2",
     "rapidfuzz>=3.9",
+    "python-docx>=1.2.0",
 ]
 
 [project.scripts]
