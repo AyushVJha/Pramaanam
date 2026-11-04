@@ -329,3 +329,22 @@ update schedule. The domain name (SCR) fits the hypothesis that this is the Supr
 Reports portal, i.e. reported judgments, but that is an inference from a name, not a stated fact.
 Our DB holds 38,397 cases against the README's "~35K" (approximate figure, difference not explained).
 Next: ask the maintainer, or check the portal's own description, before relying on the hypothesis.
+
+**Duplicate ranges, inverted range and cases without a PDF (checked 4 Nov 2026).**
+- **The 22 "duplicate" page ranges are not duplicates.** Each pair is two different cases, one with
+  file name `1992_2_1_12_EN.pdf` and one with `S_1992_2_1_12_EN.pdf`. The `S_` files are the SCR
+  *Supplement* series, which restarts page numbers inside the same year and volume number.
+  The audit grouped both series under one key, so its tiling numbers mix two series. It needs
+  re-running with the series kept apart (not done yet).
+- **7,641 cases (about 20% of the corpus) are Supplement cases.** Their metadata citation reads
+  e.g. `[1992] SUPP. 2 S.C.R. 1`. `parse_scr` returns None for that form (the regex accepts
+  `Supp. (2)` with brackets, not `SUPP. 2`), so these cases have NO SCR row in `case_citations`,
+  only their INSC number. A user citing `[1992] Supp. (2) SCR 1` therefore cannot be matched to them.
+- **Wrong-match risk, found by reading the code, not yet measured:** `parse_scr` accepts
+  `[1992] Supp. (2) SCR 1` but drops the Supp marker and the volume, giving year 1992, volume None,
+  page 1. The resolver then matches any regular-series case on page 1 of 1992, which can be a
+  different case from the one cited. Not yet tested against real data.
+- **1 inverted range:** `1972_3_973_972_EN.pdf` (D. N. Bhattacharjee v. State of West Bengal),
+  start 973, end 972: a typo in the file name. Harmless, not corrected.
+- **5 cases have no PDF at all** (path is empty): 1996 (1), 1999 (2), 2023 (2). They have metadata
+  only, so they can be found but not checked.
