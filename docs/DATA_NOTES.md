@@ -411,3 +411,27 @@ normalised. Nothing was tuned on these pages.
   handling need their own measurement.
 - Not measured: tables, footnotes, other engines (Docling, Marker, PaddleOCR, a vision model),
   more than 10 pages, human-verified labels.
+
+**Docling added (same 10 pages, same labels, still exploratory).** Docling 2.145.0 run from the
+Python environment of another project on this Mac (`/Users/ayush/factget/.venv`; Docling is NOT
+installed in Pramaan and no code from that project is used). Script: `bench/docling_pages.py`
+(`default` and `ocr` modes), then `bench/eval_ocr_engines.py` scores everything.
+
+| CER | embedded | Tesseract psm 3 | Docling default | Docling + full-page Tesseract OCR |
+|---|---|---|---|---|
+| median | 0.016 | 0.002 | 0.006 | 0.005 |
+| mean | 0.030 | 0.019 | 0.055 | **0.005** |
+| worst page | 0.169 | 0.171 | 0.294 | **0.010** |
+
+- Docling's layout model on top of the embedded text ("default") is no better, and worse on 3
+  pages (worst 29%): it keeps the embedded layer's character errors and reorders blocks.
+- Docling's layout model on top of a fresh full-page Tesseract read ("ocr") is the best here on
+  every summary line, including the page every other engine failed (1961 p1: 0.8%, because the
+  margin case name no longer cuts into the sentence).
+- Speed on this Mac: median 2.5 to 3.8 s per page, max 9.2 s (model load not counted).
+- It is not clean. On the same 1961 page: a stray "High" broke the sentence end ("and in the Court"),
+  the running head and the side notes (year, party names, judge) were dropped or scattered, and two
+  title lines came out in the wrong order ("TRIVEDI" before "SHRI BALWANTRAI CHIMANLAL"). Dropping
+  side notes helps quoting but loses the case-name block. The excerpt metric cannot see these.
+- Limits: 10 pages, labels transcribed by Claude, not by a human; excerpts are body paragraphs, so
+  headings, tables and footnotes are not scored. These numbers say "worth testing properly", not "adopt".

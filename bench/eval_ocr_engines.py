@@ -17,6 +17,7 @@ Usage: uv run python bench/eval_ocr_engines.py
 import json
 import re
 import statistics
+from pathlib import Path
 
 import pymupdf
 
@@ -63,8 +64,16 @@ def cer(excerpt: str, engine_text: str) -> float:
 def main() -> None:
     items = json.loads(LABELS.read_text())["items"]
     engines = ["embedded", "tesseract_psm3", "tesseract_psm4", "tesseract_psm6"]
+    # Docling output is made by bench/docling_pages.py (needs a Python that has docling).
+    docling = {}
+    for mode in ("default", "ocr"):
+        f = Path(f"logs/docling_{mode}.json")
+        if f.exists():
+            docling[f"docling_{mode}"] = json.loads(f.read_text())
+            engines.append(f"docling_{mode}")
     scores: dict[str, list[float]] = {e: [] for e in engines}
     print(f"{'page':<26}" + "".join(f"{e:>16}" for e in engines))
+    print("(Docling columns appear only if logs/docling_<mode>.json exists)")
     for it in items:
         pdf = GT / "pdfs" / f"{it['path']}_EN.pdf"
         doc = pymupdf.open(pdf)
@@ -77,6 +86,8 @@ def main() -> None:
             "tesseract_psm6": tesseract_text(page, 6),
         }
         doc.close()
+        for name, saved in docling.items():
+            texts[name] = saved[f"{it['path']}|{it['page']}"]["text"]
         row = {e: cer(it["excerpt"], texts[e]) for e in engines}
         for e in engines:
             scores[e].append(row[e])
