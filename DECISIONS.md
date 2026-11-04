@@ -195,3 +195,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** keep VERIFIED = "AI says supported". Rejected: a small open model would be giving the green tick, which is the hallucination risk we are removing.
 - **Why:** the source text is noisy (DATA_NOTES 15-16) and alias pairs can come from one typo, so accusing a lawyer needs proof.
 - **Trade-off:** more NEEDS_REVIEW; VERIFIED says less (citation correct, not argument correct). Witness threshold (2) is a constant in pipeline.py, not tuned on test.
+
+## Layout layer is on-demand, not whole-corpus
+- **Choice:** stop the whole-corpus layout batch; convert only cited judgments (second reading) and evaluation samples.
+- **Alternative:** build all 38k judgments (about 158 h on this laptop, measured in DATA_NOTES 17) or rent GPU/CPU time (costs money; company server needs approval).
+- **Why:** a citation check touches a handful of judgments; precomputing everything buys little.
+- **Trade-off:** first check of a judgment is slow (about 3 s per page); results are cached in the store, so repeats are instant.

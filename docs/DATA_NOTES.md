@@ -466,3 +466,7 @@ numpy, which pandas already brings in).
 - Speed on this Mac: Docling + OCR median 2.7 s per page (max 7.4); default 3.9 s (max 10.3).
 - Not covered: tables, footnotes, headings and side notes (excerpts are body text only), scans
   worse than these, other engines (Marker, PaddleOCR, a vision model), human-verified labels.
+
+## 17. Layout build throughput (measured 2026-11-05)
+
+Docling + full-page Tesseract on this laptop (4 workers, run at low priority): 360 judgments / 7,900 pages of 2024 in about 110 minutes, 0 failures, 5.7 MB of blocks. That is about 1.2 pages/s. The whole corpus (682,658 pages) would take about 158 hours, so a whole-corpus layout build on this machine is not practical. Layout is therefore used as an on-demand second reading for judgments a draft actually cites (and for evaluation samples), not as the primary text of every judgment. Partial 2024 store kept (resumable). Build stopped by hand.
