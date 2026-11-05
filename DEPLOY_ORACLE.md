@@ -78,3 +78,15 @@ an idle instance, uptime. Keep the paid VPS option (DEPLOY.md) as the fallback.
   itself. The public IP is an ordinary one, not reserved: if the instance is deleted and recreated, update
   the DuckDNS entry and the sslip.io name in `/etc/caddy/Caddyfile`. A real domain, when bought, needs
   an A record to the server's IP and one more name in that file.
+
+## Update 2026-11-05: later-treatment flags deployed
+- New serving database (419 MB gz, sha256 `c5c93245485008481805c042fe18d2b4af62db3d875e2c3873a518b98807e342`)
+  uploaded with rsync, checksum verified on the server, unpacked to `pramaan.db.new`, then swapped in
+  (`pramaan.db` -> `pramaan.db.old`, `pramaan.db.new` -> `pramaan.db`) and the service restarted
+  (about a minute of downtime). The `src/` folder was synced in the same step.
+- Checked from outside: `/health` ok; a citation to ADM Jabalpur returns NEEDS_REVIEW naming Puttaswamy (2017);
+  `demo/mixed_draft.txt` returns the same mix of statuses as before.
+- Rollback: `cd /opt/pramaan/data && mv pramaan.db pramaan.db.bad && mv pramaan.db.old pramaan.db &&
+  sudo systemctl restart pramaan` (the old code is compatible: it ignores the extra table).
+- `pramaan.db.old` (1.8 GB) can be deleted once you are happy; the 50 GB disk has room.
+- The agents are still NOT enabled on the server.
