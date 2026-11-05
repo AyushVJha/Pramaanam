@@ -70,7 +70,11 @@ The cost: one negative (item e7e3d040ebba-neg) was judged partially_supported. I
 one item is 6.7 points, so this is not a reliable estimate of the true rate. In the pipeline, partially_supported
 only gives NEEDS_REVIEW (never an accusation and never a tick), so the effect is an extra review, not a wrong verdict.
 Dev only, one run, one local model, noisy positives. Not a published result.
-### Phase C/D (benchmark v2, three modes): not yet measured
+### Phase C: benchmark v2 built (dev only): 22 positives, 13 easy negatives, 16 hard negatives
+First version had a flaw found by reading it: every hard negative reused one noisy headnote line. Fixed: each
+proposition is used once, must be short with no treatment labels, and is ranked by the share of its topic words found
+in the case text. Contexts are the dataset's raw slices (some start mid-citation), so v2 is still a noisy dev yardstick.
+### Phase D (three modes on v2): not yet measured
 The local model is too slow for the agent mode (about 60 s per call). Waiting for a faster free model (Gemini
 free tier) before running `scripts/queue_support_v2.sh` equivalents.
 

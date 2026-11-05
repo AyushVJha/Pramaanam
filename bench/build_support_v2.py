@@ -17,17 +17,35 @@ Usage: uv run python bench/build_support_v2.py [--n 20]
 
 import argparse
 import json
+import re
 import sqlite3
 from pathlib import Path
 
 from build_support_dev import MAX_PER_CASE, MIN_YEAR_GAP, SRC, _h, looks_like_a_proposition
 
 from pramaan.checks.quotes import load_paragraphs
-from pramaan.checks.support import rank_paragraphs
+from pramaan.checks.support import _tokens, rank_paragraphs
 
 OUT = Path("bench/data/support_v2_dev.jsonl")
 MIN_CONTEXT_CHARS = 200
-MIN_OVERLAP_SCORE_PARAS = 3  # a hard negative must retrieve at least this many paragraphs
+MIN_OVERLAP = 0.35  # share of the proposition's topic words that the case text must contain
+MAX_PROPOSITION_CHARS = 700
+MAX_CITE_MARKS = 3  # the sentence itself cites the case: SCC + SCR + AIR is normal
+_CITE = re.compile(r"\bSCC\b|\bSCR\b|\bAIR\b|\bINSC\b")
+_LABEL = re.compile(
+    r"\b(referred to|relied on|relied upon|overruled|followed|distinguished)\b", re.I
+)
+
+
+def is_clean(text: str) -> bool:
+    """A proposition, not a headnote list: short, few reporter marks, no treatment labels."""
+    return (len(text) <= MAX_PROPOSITION_CHARS and len(_CITE.findall(text)) <= MAX_CITE_MARKS
+            and not _LABEL.search(text))
+
+
+def overlap(proposition: str, case_vocab: set[str]) -> float:
+    words = set(_tokens(proposition))
+    return len(words & case_vocab) / len(words) if words else 0.0
 
 
 def main() -> None:
@@ -38,7 +56,8 @@ def main() -> None:
     rows = [json.loads(line) for line in SRC.read_text().splitlines()]
     assert all(r["split"] == "dev" for r in rows), "this script must only read the dev split"
     rows = [r for r in rows if r["gold_kind"] == "in_corpus"
-            and len(r["context"]) >= MIN_CONTEXT_CHARS and looks_like_a_proposition(r["context"])]
+            and len(r["context"]) >= MIN_CONTEXT_CHARS and looks_like_a_proposition(r["context"])
+            and is_clean(r["context"])]
     per_case: dict[str, int] = {}
     picked = []
     for r in sorted(rows, key=lambda r: _h(r["item_id"])):
@@ -53,7 +72,7 @@ def main() -> None:
         f"SELECT cnr, CAST(substr(decision_date, -4) AS INT) FROM cases WHERE cnr IN ({marks})",
         [r["gold_case_id"] for r in pool],
     ))
-    items = []
+    items, used = [], set()
     for i, r in enumerate(picked):
         case_b, paras_b = r["gold_case_id"], load_paragraphs(con, r["gold_case_id"])
         # positive
@@ -63,18 +82,22 @@ def main() -> None:
         if abs(years[other["gold_case_id"]] - years[case_b]) >= MIN_YEAR_GAP:
             items.append(_item(r, "easy_negative", other["gold_case_id"], r["context"],
                                load_paragraphs(con, other["gold_case_id"])))
-        # hard negative: another case's sentence with the most word overlap with B's text
+        # hard negative: an unused sentence cited to another case, with the most word overlap
+        vocab = {w for _, t in paras_b for w in _tokens(t)}
         best = None
         for s in pool:
-            if s["gold_case_id"] == case_b or s["citing_case"] == r["citing_case"]:
+            if s["item_id"] in used or s["gold_case_id"] == case_b:
+                continue
+            if s["citing_case"] == r["citing_case"]:
                 continue
             if abs(years[s["gold_case_id"]] - years[case_b]) < MIN_YEAR_GAP:
                 continue
-            hits = rank_paragraphs(paras_b, s["context"])
-            if len(hits) >= MIN_OVERLAP_SCORE_PARAS and (best is None or len(hits) > best[0]):
-                best = (len(hits), s, hits)
+            score = overlap(s["context"], vocab)
+            if score >= MIN_OVERLAP and (best is None or score > best[0]):
+                best = (score, s)
         if best:
-            _, s, hits = best
+            _, s = best
+            used.add(s["item_id"])
             item = _item(r, "hard_negative", case_b, s["context"], paras_b)
             item["item_id"] = f"{r['item_id']}-hard-{s['item_id']}"
             items.append(item)
