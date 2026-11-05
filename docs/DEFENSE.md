@@ -278,3 +278,10 @@ The step refuses and falls through to fuzzy matching. 5 of 390 repeated numbers 
 3. **Does "no flag" mean the case is good law?** No. Only judgments with such a headnote contribute (about 2,700 label rows, around 100 strong, in 38,397 judgments), and running-text treatments are not read. The product says "check", never "valid".
 4. **Why NEEDS_REVIEW and not a new status?** SPEC 4.1 fixes the status names, and the case does exist. The reason line names the later judgment and the label; an overruled case may be cited on purpose (historically), so a person decides.
 5. **Is the precision measured?** Not on a labelled set. I checked four known pairs (three found, one absent: coverage gap) and read a sample of 30 strong rows. That sample was read by Claude, not a lawyer, and is recorded as such. A lawyer-labelled sample is the next step.
+
+## Measured: pointer evidence vs copied quotes (dev, 39 items): five likely questions
+1. **What did you measure and what changed?** The same 39 items, same local model, two ways of giving evidence. Unusable answers fell from 20.5% to 2.6%, and positives accepted rose from 41.7% to 79.2%.
+2. **Did anything get worse?** One of 15 negatives was called partially_supported where the old mode had none. I report it. The old zero was helped by discarded answers counting as safe, and 1 of 15 is too few to estimate a rate.
+3. **Why is that acceptable?** partially_supported only yields NEEDS_REVIEW. The AI cannot create a tick or an accusation on its own, so the worst case is an extra look by a person.
+4. **How trustworthy is the positive set?** Not very: positives are sentences that cited the case, and some cite it only to set it aside. So 79.2% is not an accuracy figure; it is a comparison between two methods on the same noisy items.
+5. **What is next?** Benchmark v2 adds hard negatives (right case, wrong proposition) and compares quote, pointer and the reading agent. It needs a faster free model than my laptop's 60 s per call.

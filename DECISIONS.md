@@ -300,3 +300,9 @@ Each entry: choice, alternative considered, why, trade-off.
 ## SCR "Suppl." with an "l" (2026-11-05)
 - Choice: the SCR pattern and parser accept "Supp" and "Suppl". Found because a famous headnote ("[1976] Suppl. SCR 172") was not extracted.
 - Why: drafts and headnotes spell it both ways; missing one loses a proven anchor. Alias table and treatments are rebuilt after the change.
+
+## Pointer evidence adopted as the default single-shot judge, with a caveat (2026-11-05)
+- Result (dev, 39 items, local qwen3:8b, one run): no-valid-answer 20.5% to 2.6%; positives accepted 41.7% to 79.2%; negatives called supported/partial 0 of 15 to 1 of 15.
+- Choice: use pointer mode as the single-shot judge going forward; keep quote mode in the code for comparison.
+- Why: the old mode threw away a fifth of answers on copying errors, and its zero false-support partly came from those discarded answers.
+- Trade-off: one more false "partially_supported" on 15 negatives (6.7%, very uncertain at this size). It only produces NEEDS_REVIEW, never a tick or an accusation. Benchmark v2 has more and harder negatives to see whether the difference is real.

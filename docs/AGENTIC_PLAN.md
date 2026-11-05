@@ -56,7 +56,23 @@ Agent accuracy, agent cost per citation, latency under the runtime. All numbers 
   the three in sequence on the local model.
 
 ## Measurements (filled in from logs/, never typed by hand)
-Pending. See logs/support_v2_*.json after the queue finishes.
+### Phase B: evidence by pointer, v1 dev set (39 items, qwen3:8b local), logs/support_qwen3_8b*.json
+| | quote (copy text) | pointer (name paragraphs) |
+|---|---|---|
+| positives accepted (24, noisy) | 41.7% (10) | 79.2% (19) |
+| negatives called supported/partial/contradicted (15) | 0.0% (0) | 6.7% (1) |
+| no valid answer | 20.5% (8) | 2.6% (1) |
+| needed a retry | 33.3% | 2.6% |
+| median seconds per item | 45 | 61 |
+Reading: the copy-failure class is gone (gave-up 20.5% to 2.6%) and positives are accepted far more often.
+The cost: one negative (item e7e3d040ebba-neg) was judged partially_supported. In the old mode part of the
+"0 false support" came from the 20.5% of answers that were thrown away, which count as safe. With 15 negatives
+one item is 6.7 points, so this is not a reliable estimate of the true rate. In the pipeline, partially_supported
+only gives NEEDS_REVIEW (never an accusation and never a tick), so the effect is an extra review, not a wrong verdict.
+Dev only, one run, one local model, noisy positives. Not a published result.
+### Phase C/D (benchmark v2, three modes): not yet measured
+The local model is too slow for the agent mode (about 60 s per call). Waiting for a faster free model (Gemini
+free tier) before running `scripts/queue_support_v2.sh` equivalents.
 
 ## Rules for turning agents on in the product
 1. The agent beats single-shot on v2 dev: same or lower false_support on hard negatives, higher accepted on positives.
