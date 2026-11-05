@@ -95,8 +95,10 @@ def test_open_models_cost_nothing():
 def test_openai_compat_backend_builds_request_and_reads_usage(monkeypatch):
     import io
 
+    from pramaan import config
     from pramaan.llm.client import OpenAICompatBackend
 
+    monkeypatch.setattr(config, "OPENAI_PATH", "/v1/chat/completions")  # not the local .env
     seen = {}
 
     def fake_urlopen(request, timeout):
