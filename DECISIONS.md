@@ -260,3 +260,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** (a) the first cream and brass design with glow, pills and slogans, which read as generated; (b) a plain white page with tables, which read like an internal dashboard.
 - **Why:** lawyers trust what looks like their own material, meaning law reports and well-set briefs. Showing the product's real output in the hero is more convincing than icons or stock art.
 - **Trade-off:** about 360 KB of fonts. The page is light-only (no dark mode) so the look stays controlled. Photographs are left to the owner, and the page must work without them.
+
+## Public name: Pramaanam (code and repo stay "pramaan")
+- **Choice:** the name shown to users is "Pramaanam" (Sanskrit प्रमाणम्, the dictionary form of pramāṇa, "proof, means of valid knowledge"). The Python package, repo, CLI, environment variables and file names stay `pramaan`.
+- **Alternative:** rename everything, or keep "Pramaan".
+- **Why:** a display-only change is reversible in minutes and cannot break imports, deployment files or the benchmark scripts.
+- **Trade-off:** the visible name and the code name differ. Domain, GitHub repo name and any public posting are still undecided and need the owner; not checked whether "Pramaanam" is already used by another product.

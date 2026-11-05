@@ -101,7 +101,7 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
             logger.exception("could not prepare the database")  # /health will report it
         yield
 
-    app = FastAPI(title="Pramaan", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Pramaanam", version="0.1.0", lifespan=lifespan)
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
     @app.middleware("http")

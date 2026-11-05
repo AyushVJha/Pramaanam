@@ -1,4 +1,4 @@
-/* Pramaan front end. Plain JavaScript, no libraries, no third-party requests.
+/* Pramaanam front end. Plain JavaScript, no libraries, no third-party requests.
    Every value from the server is put on the page with textContent, never innerHTML. */
 (() => {
   "use strict";
@@ -428,7 +428,7 @@
   /* ---------- result actions ---------- */
   $("#copy-btn").addEventListener("click", async (e) => {
     const lines = lastReports.map((r, i) => `${i + 1}. [${r.status}] ${r.raw}${r.case_name ? ` (${r.case_name})` : ""}\n   ${r.reason}`);
-    lines.push("", "Checked with Pramaan. Automated check, not legal advice.");
+    lines.push("", "Checked with Pramaanam. Automated check, not legal advice.");
     const btn = e.currentTarget;
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
