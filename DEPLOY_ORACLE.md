@@ -97,7 +97,8 @@ an idle instance, uptime. Keep the paid VPS option (DEPLOY.md) as the fallback.
   inputs to improve its models). Off by default. It can only add warnings, never a green tick.
 - Limits per request: 4 citations, 5 steps and 50 s per citation, 150 s in all; one agent job at a time on the server
   (a second visitor is told "busy"); `cache=False`, so no model reply is written to disk. The usage log keeps token
-  counts and the model name only (no text).
+  counts and the model name only: a first version also logged the model's reply text, which could echo a
+  visitor's draft; that was found the same day, fixed (`keep_text` is off when `cache=False`), and the log was wiped.
 - Server config: `/etc/pramaan-agents.env` (root-only, holds the API key and `PRAMAAN_ENABLE_AGENTS=1`,
   `PRAMAAN_LLM_RETRIES=2`) loaded by a systemd drop-in `/etc/systemd/system/pramaan.service.d/agents.conf`.
   The key is not in git. To turn the agents off: remove `PRAMAAN_ENABLE_AGENTS` from that file and

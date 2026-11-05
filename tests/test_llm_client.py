@@ -219,3 +219,21 @@ def test_openai_backend_reports_an_empty_reply_instead_of_crashing(monkeypatch):
     with pytest.raises(RuntimeError, match="no text"):
         client.OpenAICompatBackend(url="http://x").create(model="m", system="s", prompt="p",
                                                          max_tokens=5)
+
+
+def test_usage_log_has_no_reply_text_when_cache_is_off(tmp_path):
+    import json
+
+    from pramaan.llm.client import RawReply, complete
+
+    class B:
+        def create(self, **kw):
+            return RawReply(text="SECRET DRAFT WORDS", input_tokens=3, output_tokens=2)
+
+    log = tmp_path / "u.jsonl"
+    complete("p", "s", model="m", backend=B(), cache_dir=tmp_path / "c", usage_log=log, cache=False)
+    row = json.loads(log.read_text())
+    assert "text" not in row and "SECRET" not in log.read_text()
+    assert row["input_tokens"] == 3  # token counts are still kept
+    complete("p", "s", model="m", backend=B(), cache_dir=tmp_path / "c2", usage_log=log)
+    assert "SECRET DRAFT WORDS" in log.read_text()  # benchmarks keep the text

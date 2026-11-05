@@ -211,9 +211,11 @@ def make_backend() -> Backend:
     return OllamaBackend()
 
 
-def _log_usage(path: Path, result: LLMResult, purpose: str) -> None:
+def _log_usage(path: Path, result: LLMResult, purpose: str, keep_text: bool = True) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     row = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "purpose": purpose, **result.model_dump()}
+    if not keep_text:
+        row.pop("text", None)  # a visitor's draft must never end up in a log file
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
@@ -262,5 +264,5 @@ def complete(
             cached=False,
             latency_s=time.perf_counter() - start,
         )
-    _log_usage(usage_log, result, purpose)
+    _log_usage(usage_log, result, purpose, keep_text=cache)  # cache=False means user text
     return result
