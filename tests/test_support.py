@@ -150,3 +150,18 @@ def test_pointer_supported_without_paras_is_rejected_then_fixed(tmp_path):
 def test_pointer_not_supported_needs_no_paras(tmp_path):
     r = run_ptr(tmp_path, Scripted(ptr("not_supported", ())))
     assert r.verdict == "not_supported" and r.evidence == []
+
+
+class Down:
+    def create(self, **kw):
+        raise RuntimeError("Model server returned HTTP 503")
+
+
+def test_model_outage_gives_cannot_determine_not_a_crash(tmp_path):
+    from pramaan.checks.support import judge_support_pointer
+
+    for judge in (judge_support, judge_support_pointer):
+        r = judge("anticipatory bail can be granted", PARAS, backend=Down(),
+                  model="claude-haiku-5-5", cache_dir=tmp_path / "c", usage_log=tmp_path / "u")
+        assert r.verdict == "cannot_determine" and "unavailable" in r.reason
+        assert "503" in r.failure

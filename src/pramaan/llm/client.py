@@ -25,7 +25,7 @@ from pramaan.llm.cache import cache_get, cache_key, cache_put
 
 log = logging.getLogger(__name__)
 
-RETRIES, BASE_WAIT, MAX_WAIT = 4, 5.0, 60.0  # free tiers rate-limit; wait 5, 10, 20 s (cap 60)
+RETRIES, BASE_WAIT, MAX_WAIT = 6, 5.0, 60.0  # free tiers rate-limit: waits 5, 10, 20, 40, 60 s
 
 
 class RawReply(BaseModel):

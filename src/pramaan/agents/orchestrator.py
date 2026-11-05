@@ -98,7 +98,13 @@ def _support_step(con, citation, base, spend, model, backend, client_kw) -> Cita
     final = check_citation(
         con, citation, use_llm=True, support_fn=lambda *a, **k: result
     )
-    final = final.model_copy(update={"agent_trace": result.trace, "cost_usd": result.cost_usd})
+    update: dict = {"agent_trace": result.trace, "cost_usd": result.cost_usd}
+    if result.failure:
+        update["agent_note"] = (
+            f"The reading agent did not finish ({result.failure[:120]}); the deterministic "
+            "result stands."
+        )
+    final = final.model_copy(update=update)
     if not allowed_change(base.status, final.status):
         return _with_note(base, "Agent result rejected by the status guard; deterministic kept.")
     return final

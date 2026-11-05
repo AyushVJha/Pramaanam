@@ -130,9 +130,15 @@ def run_agent(
         prompt = f"TASK:\n{task}\n\n" + "\n\n".join(log)
         if last:
             prompt += "\n\nThis is your LAST step. You must reply with the finish action now."
-        reply = complete(
-            prompt, full_system, model=model, purpose=f"agent:{name}", backend=backend, **client_kw
-        )
+        try:
+            reply = complete(
+                prompt, full_system, model=model, purpose=f"agent:{name}", backend=backend,
+                **client_kw,
+            )
+        except RuntimeError as e:  # the model server is down or overloaded
+            out.problem = f"model server error: {str(e)[:160]}"
+            note("error", out.problem)
+            return out
         out.cost_usd += reply.cost_usd
         note("model", reply.text, reply.latency_s, reply.cost_usd)
         log.append(f"[step {step}] you said: {reply.text.strip()[:1500]}")

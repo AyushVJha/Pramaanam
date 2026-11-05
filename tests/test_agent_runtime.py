@@ -182,3 +182,12 @@ def test_guard_matrix(current, proposed):
 def test_not_found_can_only_become_needs_review_or_more_careful():
     assert allowed_change("NOT_FOUND_IN_CORPUS", "NEEDS_REVIEW")
     assert not allowed_change("NOT_FOUND_IN_CORPUS", "VERIFIED")
+
+
+def test_model_outage_ends_the_run_cleanly(tmp_path):
+    class Down:
+        def create(self, **kw):
+            raise RuntimeError("Model server returned HTTP 503")
+
+    out = go(tmp_path, Down())
+    assert out.status == "invalid" and "model server error" in out.problem

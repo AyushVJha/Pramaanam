@@ -212,7 +212,7 @@ def test_orchestrator_agent_exception_keeps_deterministic(con, tmp_path):
             raise RuntimeError("server down")
 
     r = review_citation(con, cit(), Spend(DraftBudget()), backend=Boom(), **kw(tmp_path))
-    assert r.status == "VERIFIED" and "failed" in r.agent_note.lower()
+    assert r.status == "VERIFIED" and "did not finish" in r.agent_note
 
 
 def test_orchestrator_agent_giving_up_keeps_verified(con, tmp_path):

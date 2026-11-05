@@ -136,6 +136,15 @@ def verify_answer(answer: JudgeAnswer, given: list[tuple[int, str]]) -> str | No
     return None
 
 
+def _unavailable(err: Exception, attempts: int, paras: list[int], cost: float,
+                 latency: float) -> SupportResult:
+    return SupportResult(
+        verdict="cannot_determine", reason="The model server was unavailable, so the proposition "
+        "was not checked.", attempts=attempts, paragraphs_given=paras, cost_usd=cost,
+        latency_s=latency, failure=f"model server error: {str(err)[:160]}",
+    )
+
+
 def judge_support(
     proposition: str,
     given: list[tuple[int, str]],
@@ -156,10 +165,13 @@ def judge_support(
     cost = latency = 0.0
     paras = [n for n, _ in given]
     for attempt in (1, 2):
-        reply = complete(
-            prompt, SUPPORT_SYSTEM, model=model, purpose="support_judge",
-            backend=backend, **client_kw,
-        )
+        try:
+            reply = complete(
+                prompt, SUPPORT_SYSTEM, model=model, purpose="support_judge",
+                backend=backend, **client_kw,
+            )
+        except RuntimeError as e:  # model server down or overloaded: say so, do not crash
+            return _unavailable(e, attempt - 1, paras, cost, latency)
         cost += reply.cost_usd
         latency += reply.latency_s
         try:
@@ -234,10 +246,13 @@ def judge_support_pointer(
     paras = [n for n, _ in given]
     text_of = dict(given)
     for attempt in (1, 2):
-        reply = complete(
-            prompt, SUPPORT_POINTER_SYSTEM, model=model, purpose="support_judge_pointer",
-            backend=backend, **client_kw,
-        )
+        try:
+            reply = complete(
+                prompt, SUPPORT_POINTER_SYSTEM, model=model, purpose="support_judge_pointer",
+                backend=backend, **client_kw,
+            )
+        except RuntimeError as e:
+            return _unavailable(e, attempt - 1, paras, cost, latency)
         cost += reply.cost_usd
         latency += reply.latency_s
         try:
