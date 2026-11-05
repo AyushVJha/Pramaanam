@@ -73,3 +73,8 @@ an idle instance, uptime. Keep the paid VPS option (DEPLOY.md) as the fallback.
 - Not done: HTTPS (needs a hostname), a retry for the bigger ARM shape, any monitoring or backups,
   a test of a reboot, and a measurement of speed and memory under several simultaneous users.
 - Update the code: `rsync` the `src/` folder again, then `sudo systemctl restart pramaan`.
+- Hostnames (2026-11-05): `pramaanam.duckdns.org` (free DuckDNS name, pointing at the server's IP) and
+  `129-225-90-183.sslip.io` (free, no signup). Caddy obtains and renews the HTTPS certificates for both by
+  itself. The public IP is an ordinary one, not reserved: if the instance is deleted and recreated, update
+  the DuckDNS entry and the sslip.io name in `/etc/caddy/Caddyfile`. A real domain, when bought, needs
+  an A record to the server's IP and one more name in that file.

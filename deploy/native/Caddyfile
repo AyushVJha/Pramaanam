@@ -1,3 +1,9 @@
+pramaanam.duckdns.org, 129-225-90-183.sslip.io {
+	reverse_proxy 127.0.0.1:8000
+	request_body {
+		max_size 3MB
+	}
+}
 :80 {
 	reverse_proxy 127.0.0.1:8000
 	request_body {
