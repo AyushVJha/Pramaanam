@@ -6,10 +6,16 @@ appear in it, at the paragraph cited? It reports evidence, never a verdict on th
 [SPEC.md](SPEC.md) for the plan and [docs/CLAIM_CONTRACT.md](docs/CLAIM_CONTRACT.md) for exactly what each
 status promises.
 
+**Live demo: https://pramaanam.duckdns.org/** (free hosting on a 1 GB machine: expect it to be slow at times).
+
 Author: Ayush Vardhan Jha ([LinkedIn](https://www.linkedin.com/in/ayushvjha)). The public site is
 shown as "Pramaanam"; the code, package and repo stay `pramaan`.
 
-**Status: working prototype, not a product.** The test split was run once on 2026-11-05 (results below). Afterwards the SCR "Suppl." pattern was fixed and the alias table rebuilt (37,926 to 43,034 rows), and later-treatment flags were added. The test numbers below are for the earlier version and have NOT been re-run; the test split is run again only once the dev result is frozen.
+**Status: working prototype, not a product.** The deterministic checks, the later-treatment flags and an
+opt-in, experimental AI reading check are live. The test split was run once on 2026-11-05 (results below);
+afterwards the SCR "Suppl." pattern was fixed and the alias table rebuilt (37,926 to 43,034 rows), so those test
+numbers are for the earlier version and have **not** been re-run (the test split is run again only once the dev
+result is frozen). The AI reading check has **not** been measured on the harder benchmark yet.
 
 ## What you get
 
@@ -20,7 +26,30 @@ shown as "Pramaanam"; the code, package and repo stay `pramaan`.
 | MISQUOTE, WRONG_PARAGRAPH, NAME_MISMATCH | Only said when the case is proven by its number and the quote or name is clearly tied to that citation. |
 | NOT_FOUND_IN_CORPUS | Not in the dataset. Never "fake": it may be another court, or an SCC/AIR number we cannot map. |
 | LOW_FIDELITY_SOURCE | The quote matches except for what looks like scan noise in the source text. |
-| UNSUPPORTED, CONTRADICTED | Optional AI second opinion (off by default); it can lower a result, never raise one. |
+| UNSUPPORTED, CONTRADICTED | Optional AI reading check (off by default, opt-in on the site); it can lower a result, never raise one. |
+| (NEEDS_REVIEW, later treatment) | A later judgment's own headnote marks the case overruled, partly overruled, disapproved or held per incuriam. The note names that judgment. |
+
+## Agents and later treatment
+
+- **Later treatment (no AI).** The Supreme Court's headnotes label the cases a judgment dealt with, for example
+  "... - overruled". `data/build_treatments.py` reads those lines, resolves each cited case with the verifier's
+  proven-only rules, and stores them (2,683 label rows, about 100 of them "strong"). A strong label moves a
+  VERIFIED result to NEEDS_REVIEW with the source judgment named. Many judgments print no such headnote, so
+  "no flag" never means "still good law". Precision is not measured on a labelled set: four known pairs were
+  checked (three found) and a sample was read by Claude, not by a lawyer.
+- **AI reading check (experimental, opt-in).** A small agent (a custom loop in `src/pramaan/agents/`, no
+  framework) reads the cited judgment: it searches it, reads paragraphs in full, and says whether the judgment
+  supports what the draft says, naming the paragraph it relied on. Code enforces the rules: the answer must point
+  at paragraphs the agent read, the quote shown is looked up by code, there are limits on steps, time and cost,
+  and a guard (`agents/guard.py`) means an agent can never produce VERIFIED. If the model is down, the
+  deterministic result stands. A second agent suggests candidate cases for citations that did not resolve
+  (always NEEDS_REVIEW, "not confirmed").
+- **Live site:** off unless ticked; the box says what is sent where (the sentence around each citation and
+  paragraphs of the judgment go to Google's Gemini API on its free tier, where Google may use inputs to improve
+  its models); 4 citations and 150 seconds per request; one agent job at a time; nothing is cached or logged.
+- **Model:** any local (Ollama) or OpenAI-style endpoint, set in `.env` (see `.env.example`). The live site uses
+  `gemini-3.1-flash-lite`; newer Gemini models were rejected by Gemini's function-call filter or were overloaded
+  when tested.
 
 ## Results (dev split, from scripts in this repo)
 
@@ -30,7 +59,9 @@ shown as "Pramaanam"; the code, package and repo stay `pramaan`.
 | Whole pipeline on those items, AI check off | `make bench-pipeline` | 150 VERIFIED, 0 on a wrong case |
 | Whole pipeline on 896 quote items | `make bench-pipeline-quotes` | 124 of 124 real quotes VERIFIED; 0 of 524 altered or invented quotes VERIFIED |
 | 300 whole real judgments fed in as drafts | `scripts/stress_real_text.py 300` | 4,348 mentions; 1,178 VERIFIED; 10 accusations (8 MISQUOTE, 2 NAME_MISMATCH); the 8 MISQUOTEs read by hand are scan noise in the citing text |
-| Local AI judge (qwen3:8b), 39 noisy items | `bench/eval_support.py` | 0 of 15 negatives called supported; 41.7% of positives accepted; 20.5% gave no valid answer; median 45 s per item (too slow for live use) |
+| Local AI judge (qwen3:8b), 39 noisy items, model copies quotes | `bench/eval_support.py` | 0 of 15 negatives called supported; 41.7% of positives accepted; 20.5% gave no valid answer; median 45 s per item |
+| Same items, model names paragraphs and code looks up the quote (`PRAMAAN_SUPPORT_MODE=pointer`) | `bench/eval_support.py` | 1 of 15 negatives called partially supported; 79.2% of positives accepted; 2.6% gave no valid answer; median 61 s per item. One run, small and noisy set, local model |
+| Reading agent vs single-shot on benchmark v2 (hard negatives) | `bench/eval_support_v2.py` | **not measured** (the free tier was too unreliable during the attempt) |
 
 The benchmarks use synthetic alterations of real quotes and citations printed in real judgments, so
 they show the checks behave as designed, not how real lawyers' drafts will fare. Coverage numbers
@@ -77,7 +108,10 @@ Drafts can be .txt, .md, .docx (footnotes included) or a PDF with a text layer. 
 - **Not checked:** the legal argument; "supra", "ibid" and "id."; tables and footnotes inside judgments;
   SCC sub-series (Cri, L&S), SCALE and JT citations; scanned PDF drafts; names typed in lowercase.
 - **Names.** Names sharing a common word ("Mohan Lal Sharma" / "Mohan Das") can still pass.
-- **Not run:** the Docker image (no Docker on the dev machine), any public deployment.
+- **AI reading check:** experimental and not yet measured; it is only as good as a small free model, can be
+  slow or unavailable, and its one-sentence reasons are model text, so read the paragraph it quotes.
+- **Deployment:** runs natively (no Docker) on an Oracle Cloud free VM with 1 GB RAM behind Caddy; see
+  [DEPLOY_ORACLE.md](DEPLOY_ORACLE.md). The Docker image was never built. No monitoring, backups or load test.
 
 ## Data and credit
 
