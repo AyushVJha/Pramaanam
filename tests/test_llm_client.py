@@ -120,3 +120,51 @@ def test_openai_backend_without_url_explains_itself(monkeypatch):
     monkeypatch.setattr("pramaan.config.OPENAI_URL", "")
     with pytest.raises(RuntimeError, match="PRAMAAN_OPENAI_URL"):
         OpenAICompatBackend()
+
+
+def test_openai_backend_retries_429_then_succeeds(monkeypatch):
+    import io
+    import urllib.error
+
+    from pramaan.llm import client
+
+    calls = []
+
+    class Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'{"choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":3}}'
+
+    def fake_urlopen(req, timeout):
+        calls.append(1)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError("u", 429, "slow down", {"Retry-After": "0"}, io.BytesIO())
+        return Resp()
+
+    monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(client.time, "sleep", lambda s: None)
+    b = client.OpenAICompatBackend(url="http://x", api_key="k")
+    assert b.create(model="m", system="s", prompt="p", max_tokens=5).text == "ok"
+    assert len(calls) == 3
+
+
+def test_openai_backend_gives_up_on_401(monkeypatch):
+    import io
+    import urllib.error
+
+    import pytest
+
+    from pramaan.llm import client
+
+    def fake_urlopen(req, timeout):
+        raise urllib.error.HTTPError("u", 401, "no", {}, io.BytesIO())
+
+    monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
+    with pytest.raises(RuntimeError, match="401"):
+        client.OpenAICompatBackend(url="http://x").create(model="m", system="s", prompt="p",
+                                                         max_tokens=5)

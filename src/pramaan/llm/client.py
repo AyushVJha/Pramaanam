@@ -12,6 +12,7 @@ package is imported only when a real call is made.
 import json
 import logging
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Protocol
@@ -22,6 +23,8 @@ from pramaan import config
 from pramaan.llm.cache import cache_get, cache_key, cache_put
 
 log = logging.getLogger(__name__)
+
+RETRIES, BASE_WAIT, MAX_WAIT = 4, 5.0, 60.0  # free tiers rate-limit; wait 5, 10, 20 s (cap 60)
 
 
 class RawReply(BaseModel):
@@ -135,9 +138,25 @@ class OpenAICompatBackend:
         base = (url or config.OPENAI_URL).rstrip("/")
         if not base:
             raise RuntimeError("Set PRAMAAN_OPENAI_URL (for example http://127.0.0.1:8080).")
-        self._url = base + "/v1/chat/completions"
+        self._url = base + config.OPENAI_PATH
         self._key = api_key if api_key is not None else config.OPENAI_API_KEY
         self._timeout = timeout
+
+    def _send(self, request: urllib.request.Request) -> dict:
+        """POST with backoff on rate limits (429) and server errors (5xx): free tiers need it."""
+        for attempt in range(1, RETRIES + 1):
+            try:
+                with urllib.request.urlopen(request, timeout=self._timeout) as response:
+                    return json.loads(response.read())
+            except urllib.error.HTTPError as e:
+                if e.code not in (429, 500, 502, 503, 504) or attempt == RETRIES:
+                    msg = f"Model server returned HTTP {e.code} at {self._url}."
+                    raise RuntimeError(msg) from e
+                wait = float(e.headers.get("Retry-After") or BASE_WAIT * 2 ** (attempt - 1))
+                time.sleep(min(wait, MAX_WAIT))
+            except OSError as e:
+                raise RuntimeError(f"Could not reach the model server at {self._url}.") from e
+        raise RuntimeError("unreachable")
 
     def create(self, *, model: str, system: str, prompt: str, max_tokens: int) -> RawReply:
         body = {
@@ -154,11 +173,7 @@ class OpenAICompatBackend:
         if self._key:
             headers["Authorization"] = f"Bearer {self._key}"
         request = urllib.request.Request(self._url, json.dumps(body).encode("utf-8"), headers)
-        try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as response:
-                data = json.loads(response.read())
-        except OSError as e:
-            raise RuntimeError(f"Could not reach the model server at {self._url}.") from e
+        data = self._send(request)
         usage = data.get("usage", {})
         return RawReply(
             text=data["choices"][0]["message"]["content"] or "",

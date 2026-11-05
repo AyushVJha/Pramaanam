@@ -28,6 +28,9 @@ OLLAMA_URL = os.environ.get("PRAMAAN_OLLAMA_URL", "http://localhost:11434")
 # Put the URL and key in .env, never in the repo.
 OPENAI_URL = os.environ.get("PRAMAAN_OPENAI_URL", "")
 OPENAI_API_KEY = os.environ.get("PRAMAAN_OPENAI_API_KEY", "")
+# Path after the URL. Default is the OpenAI one; Gemini's compatible endpoint uses
+# URL=https://generativelanguage.googleapis.com/v1beta/openai and PATH=/chat/completions
+OPENAI_PATH = os.environ.get("PRAMAAN_OPENAI_PATH", "/v1/chat/completions")
 LLM_CACHE_DIR = Path(os.environ.get("PRAMAAN_LLM_CACHE_DIR", "data/llm_cache"))
 LLM_USAGE_LOG = Path("logs/llm_usage.jsonl")
 
