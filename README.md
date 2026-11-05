@@ -9,7 +9,7 @@ status promises.
 Author: Ayush Vardhan Jha ([LinkedIn](https://www.linkedin.com/in/ayushvjha)). The public site is
 shown as "Pramaanam"; the code, package and repo stay `pramaan`.
 
-**Status: working prototype, not a product.** The test split was run once on 2026-11-05 (results below); nothing was changed afterwards.
+**Status: working prototype, not a product.** The test split was run once on 2026-11-05 (results below). Afterwards the SCR "Suppl." pattern was fixed and the alias table rebuilt (37,926 to 43,034 rows), and later-treatment flags were added. The test numbers below are for the earlier version and have NOT been re-run; the test split is run again only once the dev result is frozen.
 
 ## What you get
 
