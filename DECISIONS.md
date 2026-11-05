@@ -272,3 +272,21 @@ Each entry: choice, alternative considered, why, trade-off.
 - Alternative: LangGraph, OpenAI Agents SDK or the Claude Agent SDK.
 - Why: the loop is short enough to explain line by line; budgets and the guard are visible and tested; it works with the local Ollama model that costs nothing, and all calls keep going through llm/client.py (cache, cost log).
 - Trade-off: no built-in tracing UI, parallel tools or streaming; we write them if needed. Reversible: tools and verifiers are plain functions that a framework could call.
+
+## Evidence by pointer, and "read before you cite" (2026-11-05)
+- Choice: the support judge and the reading agent name paragraph numbers; the quote shown to the user is a real sentence looked up by code. The agent may only rely on a paragraph it read in full with `read_paragraph`; "not supported" needs at least one search.
+- Alternative: keep asking the model to copy a quote and check it (the first judge).
+- Why: 20.5% of first-judge answers were thrown away only because the quote was not word-for-word, although the model had understood. The new rule cannot fail that way, and "read first" stops the model citing a paragraph it only glimpsed in a snippet.
+- Trade-off: the shown quote is code's best sentence, not the model's own choice, so it may not be the exact sentence that convinced it; the paragraph number is still right. Both modes stay in the code so they can be compared.
+
+## Agents suggest, the guard decides (2026-11-05)
+- Choice: `orchestrator.py` runs the deterministic pipeline first, lets an agent add a finding, then compares with `guard.allowed_change`; a forbidden change is dropped. Agent failures and budget limits leave the deterministic report and add a note.
+- Alternative: one end-to-end agent that decides the status.
+- Why: the product promise is "a green tick needs proof"; with the guard that promise holds whatever the model does. Failures degrade to the old, safe behaviour.
+- Trade-off: agents cannot rescue a citation the deterministic checks reject; they can only add warnings or suggestions.
+
+## Benchmark v2: hard negatives built from other cases' sentences (2026-11-05)
+- Choice: pair a real case B with a proposition that was cited to a different case in another judgment, picked for maximum word overlap with B, at least 10 years apart.
+- Alternative: have a model or a person write plausible-but-wrong propositions.
+- Why: truth by construction, no model-made labels, and it tests the real lawyer failure ("the case exists but does not say that"). Dev only; test is built once after freezing.
+- Trade-off: noisy in one direction (a case can happen to say the same thing), so "supported" on a hard negative is a warning sign, not proof of error. Positives remain noisy as in v1.

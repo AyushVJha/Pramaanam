@@ -1,6 +1,8 @@
 # Agentic workflow plan
 
-Written 2026-11-05. Status: phase A built and tested; B to G not started. Nothing here runs on the live site.
+Written 2026-11-05. Status (2026-11-05): phases A to F are built and tested with a fake model (370 tests). Phase B and the v2
+comparison (C, D) are being measured on dev with a local model; results are added below when they exist.
+E (locator) is built but not yet measured. Nothing here runs on the live site.
 
 ## Why (measured, not assumed)
 The support judge (checks/support.py) reads the top five BM25 paragraphs and answers once. On 39 noisy dev
@@ -37,3 +39,30 @@ The live 1 GB server cannot run a local model, so agents there would need an API
 
 ## Not measured yet
 Agent accuracy, agent cost per citation, latency under the runtime. All numbers will come from scripts in this repo.
+
+## What exists now
+- `agents/runtime.py` loop, `agents/guard.py` status guard.
+- `agents/tools.py`: `JudgmentReader` (search_judgment, read_paragraph) and `CaseFinder` (find_by_party_names,
+  find_by_citation, find_by_text, case_info). Both remember what they showed the model.
+- `agents/support_agent.py`: reading agent. Answer is paragraph numbers; each must have been READ in full;
+  "not supported" needs a search; the quote shown is looked up by code. Same `SupportResult` as the single-shot judge.
+- `agents/locator.py`: suggests up to 3 case ids that a tool showed it. Only ever NOT_FOUND to NEEDS_REVIEW.
+- `agents/orchestrator.py`: deterministic first, then agents, then the guard; draft budget (calls, dollars, seconds);
+  any agent failure keeps the deterministic report. CLI: `pramaan check draft.txt --agents`.
+- Report: "How the agents checked" section lists each tool call and the final answer.
+- `bench/build_support_v2.py`, `bench/eval_support_v2.py`: benchmark v2 (positive, easy negative, HARD negative =
+  right case, wrong proposition) and a runner for modes quote, pointer, agent. `scripts/queue_support_v2.sh` runs
+  the three in sequence on the local model.
+
+## Measurements (filled in from logs/, never typed by hand)
+Pending. See logs/support_v2_*.json after the queue finishes.
+
+## Rules for turning agents on in the product
+1. The agent beats single-shot on v2 dev: same or lower false_support on hard negatives, higher accepted on positives.
+2. Median time and cost per citation are known and acceptable (local: minutes; API: measure first, ask above $2).
+3. Test split run once, after the dev result is frozen, with the user's go-ahead.
+4. Live site: behind a password and a daily cap first. Not before.
+
+## Not built yet
+Treatment check (G); a gold-paragraph set (pinpoint citations are too rare in dev: 7 of 247 items);
+parallel agent runs; a trace viewer in the web page.
