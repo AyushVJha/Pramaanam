@@ -22,11 +22,13 @@
       <span class="brand__mark" aria-hidden="true">P</span>
       <span class="brand__name">Pramaan</span>
     </a>
-    <nav class="nav" aria-label="Sections">
+    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+    <nav class="nav" id="nav" aria-label="Sections">
       <a href="#method">Method</a>
       <a href="#statuses">Statuses</a>
       <a href="#accuracy">Accuracy</a>
       <a href="#privacy">Privacy</a>
+      <a href="#questions">Questions</a>
       <a class="nav__cta" href="#checker">Check a draft</a>
     </nav>
   </div>
@@ -90,7 +92,7 @@
 <!-- ============ CHECKER ============ -->
 <section class="desk" id="checker" aria-labelledby="checker-title">
   <div class="wrap desk__grid">
-    <div class="desk__intro">
+    <div class="reveal desk__intro">
       <p class="sect">§ 1</p>
       <h2 id="checker-title">Check a draft</h2>
       <p>Upload a written submission, a petition or an opinion, or paste a passage. Each citation
@@ -102,7 +104,7 @@
       </ul>
     </div>
 
-    <div class="tray">
+    <div class="reveal tray">
       <div class="tabs" role="tablist" aria-label="How to give your draft">
         <button class="tab is-active" role="tab" aria-selected="true" aria-controls="panel-file" id="tab-file" type="button">Upload a file</button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-text" id="tab-text" type="button" tabindex="-1">Paste text</button>
@@ -154,6 +156,7 @@
         <button class="btn btn--quiet btn--sm" id="reset-btn" type="button">Check another draft</button>
       </div>
     </div>
+    <dl class="tally" id="tally"></dl>
     <div class="meter" id="meter" aria-hidden="true"></div>
     <div class="filters" id="filters" role="group" aria-label="Filter by status"></div>
     <ol class="cards" id="cards"></ol>
@@ -164,11 +167,11 @@
 <!-- ============ METHOD ============ -->
 <section class="section" id="method" aria-labelledby="method-title">
   <div class="wrap">
-    <div class="section__head">
+    <div class="section__head reveal">
       <p class="sect">§ 2</p>
       <h2 id="method-title">Four tests, in the order a careful junior would apply them.</h2>
     </div>
-    <ol class="tests">
+    <ol class="reveal tests">
       <li class="test">
         <span class="test__no">i</span>
         <div class="test__fig" aria-hidden="true">
@@ -207,7 +210,7 @@
       </li>
     </ol>
 
-    <blockquote class="maxim">
+    <blockquote class="reveal maxim">
       <p>A machine may raise a flag. It may never give a green tick on a guess.</p>
       <footer>Verified means proven by the number, the name and the text. Anything less goes to a person.</footer>
     </blockquote>
@@ -223,11 +226,11 @@
 <!-- ============ STATUSES ============ -->
 <section class="section section--paper" id="statuses" aria-labelledby="statuses-title">
   <div class="wrap">
-    <div class="section__head">
+    <div class="section__head reveal">
       <p class="sect">§ 3</p>
       <h2 id="statuses-title">Plain words, and never &ldquo;fake&rdquo; when the answer is simply unknown.</h2>
     </div>
-    <dl class="glossary">
+    <dl class="reveal glossary">
       <div class="gl gl--ok"><dt>Verified</dt>
         <dd>The number proves the judgment, the name and year match, and any quotation is word for word. It does not say the judgment supports your argument.</dd></div>
       <div class="gl gl--review"><dt>Needs review</dt>
@@ -247,11 +250,11 @@
 <!-- ============ ACCURACY ============ -->
 <section class="section section--ink" id="accuracy" aria-labelledby="accuracy-title">
   <div class="wrap">
-    <div class="section__head">
+    <div class="section__head reveal">
       <p class="sect">§ 4</p>
       <h2 id="accuracy-title">Measured on a held-out test set, and published as measured.</h2>
     </div>
-    <div class="figures">
+    <div class="reveal figures">
       <div class="figure"><span class="figure__num">95.8<small>%</small></span><span class="figure__label">of SCC and AIR citations matched to the right judgment<sup>1</sup></span></div>
       <div class="figure"><span class="figure__num">0.4<small>%</small></span><span class="figure__label">matched to a wrong judgment: 3 of 667<sup>1</sup></span></div>
       <div class="figure"><span class="figure__num">275<small>/275</small></span><span class="figure__label">genuine quotations verified word for word<sup>2</sup></span></div>
@@ -270,15 +273,63 @@
 <!-- ============ PRIVACY ============ -->
 <section class="section" id="privacy" aria-labelledby="privacy-title">
   <div class="wrap privacy">
-    <div class="section__head">
+    <div class="section__head reveal">
       <p class="sect">§ 5</p>
       <h2 id="privacy-title">Your draft stays yours.</h2>
     </div>
-    <div class="clauses">
+    <div class="reveal clauses">
       <p><b>Not stored.</b> The file is read into a temporary place, checked and deleted. No account, no history, no tracking, no third-party scripts or fonts.</p>
       <p><b>No AI on your text by default.</b> The checks are exact comparisons against the judgments. An optional AI second opinion exists, is off on this site, and could only ever lower a result.</p>
       <p><b>What it does not check.</b> Whether the judgment supports your argument; High Court and tribunal cases; short forms such as &ldquo;supra&rdquo; and &ldquo;ibid&rdquo;; headers, footers and text boxes in Word files.</p>
       <p><b>Not legal advice.</b> An automated check of citations, in preview. Verify against an authorised source. A lawyer decides.</p>
+    </div>
+  </div>
+</section>
+<!-- ============ QUESTIONS ============ -->
+<section class="section section--paper" id="questions" aria-labelledby="questions-title">
+  <div class="wrap faq-grid">
+    <div class="section__head reveal">
+      <p class="sect">§ 6</p>
+      <h2 id="questions-title">Questions a careful advocate asks first.</h2>
+    </div>
+    <div class="faq reveal">
+      <details>
+        <summary>Does &ldquo;Verified&rdquo; mean the judgment supports my argument?</summary>
+        <p>No. Verified means the citation leads to the judgment, the parties and year match, and any quotation appears word for word. Whether the judgment holds what it is cited for is a question of law, and it stays with you.</p>
+      </details>
+      <details>
+        <summary>A citation says &ldquo;Not in corpus&rdquo;. Is the case fake?</summary>
+        <p>Not necessarily. The corpus holds Supreme Court of India judgments from the open CC-BY-4.0 dataset. A High Court or tribunal decision, or a report series that cannot be mapped to a judgment, will also show as not in corpus. Pramaan never calls a citation fake.</p>
+      </details>
+      <details>
+        <summary>Is my draft stored, or used to train anything?</summary>
+        <p>No. The file is read into a temporary place, checked and deleted. There is no account and no history, and nothing is sent to a third party. The optional AI second opinion is switched off on this site.</p>
+      </details>
+      <details>
+        <summary>Which citation formats are read?</summary>
+        <p>Neutral citations (2023 INSC 11), SCR, SCC, AIR and SCC OnLine, with the case name beside them, in Word, PDF or plain text, footnotes included. Short forms such as &ldquo;supra&rdquo;, &ldquo;ibid&rdquo; and &ldquo;id.&rdquo; are not checked, and nor are headers, footers or text boxes in Word files.</p>
+      </details>
+      <details>
+        <summary>Why does a near-identical quotation go to review and not to &ldquo;Misquote&rdquo;?</summary>
+        <p>The text of older judgments comes from scanned pages and carries errors. When the difference could be the scan and not the draft, Pramaan asks a person to compare with the printed page instead of making an accusation.</p>
+      </details>
+      <details>
+        <summary>Can the report go on the file?</summary>
+        <p>Yes. &ldquo;Download annexure&rdquo; gives a dated page listing each citation, its status and the reason. It is an automated check and not legal advice; verify against an authorised source.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CLOSING ============ -->
+<section class="closing" id="closing" aria-labelledby="closing-title">
+  <div class="closing__plate" id="closing-plate" aria-hidden="true"></div>
+  <div class="wrap closing__inner reveal">
+    <h2 id="closing-title">Before you file, <em>check.</em></h2>
+    <p>One upload. Every Supreme Court citation in the draft, tested against the judgment.</p>
+    <div class="hero__actions">
+      <a class="btn btn--light" href="#checker">Check a draft</a>
+      <a class="btn btn--line" href="/?sample">See a worked example</a>
     </div>
   </div>
 </section>

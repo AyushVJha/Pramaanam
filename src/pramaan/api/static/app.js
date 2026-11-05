@@ -2,6 +2,7 @@
    Every value from the server is put on the page with textContent, never innerHTML. */
 (() => {
   "use strict";
+  document.documentElement.classList.add("js");
 
   const STATUS = {
     VERIFIED: ["ok", "Verified"],
@@ -180,13 +181,23 @@
     }
   }
 
+  // The checker runs these stages on the server; the label walks through them while it works.
+  const STAGES = ["Finding citations…", "Proving each judgment…", "Comparing quotations…", "Writing the report…"];
+  let stageTimer = null;
   function setBusy(on) {
     checkBtn.disabled = on;
     const lbl = $(".btn__label", checkBtn);
     const existing = $(".spinner", checkBtn);
     if (on && !existing) checkBtn.prepend(el("span", "spinner"));
     if (!on && existing) existing.remove();
-    lbl.textContent = on ? "Checking…" : "Check citations";
+    clearInterval(stageTimer);
+    if (on) {
+      let i = 0;
+      lbl.textContent = STAGES[0];
+      stageTimer = setInterval(() => { i = Math.min(i + 1, STAGES.length - 1); lbl.textContent = STAGES[i]; }, 1100);
+    } else {
+      lbl.textContent = "Check citations";
+    }
   }
   function showError(msg) { errorBox.textContent = msg; errorBox.hidden = false; }
   function hideError() { errorBox.hidden = true; }
@@ -341,6 +352,19 @@
     $("#results-title").textContent = headline(reports, c);
     $("#disclaimer").textContent = body.disclaimer || "";
 
+    const tally = $("#tally");
+    tally.textContent = "";
+    const kindCount = (k) => reports.filter((r) => (STATUS[r.status] || ["none"])[0] === k).length;
+    [["Verified", kindCount("ok"), "--ok"], ["Needs review", kindCount("review") + kindCount("noise"), "--review"],
+      ["Flagged", kindCount("bad"), "--bad"], ["Not found or not checked", kindCount("none"), "--none"]]
+      .forEach(([label, n, colour]) => {
+        const d = el("div", n ? null : "is-zero");
+        if (n) d.style.setProperty("--c", `var(${colour})`);
+        d.append(el("dd", null, String(n)), el("dt", null, label));
+        tally.append(d);
+      });
+    tally.hidden = !reports.length;
+
     const meter = $("#meter");
     meter.textContent = "";
     ORDER.filter((s) => c[s]).forEach((s) => {
@@ -466,9 +490,37 @@
     p.classList.add("is-loaded");
   });
   plate("/static/img/library.jpg", (src) => {
+    const c = $("#closing-plate");
+    c.style.backgroundImage = `url("${src}")`;
+    c.classList.add("is-loaded");
     $("#plate-img").style.backgroundImage = `url("${src}")`;
     $("#plate").hidden = false;
   });
+
+  /* ---------- mobile menu ---------- */
+  const menuBtn = $("#menu-btn");
+  const nav = $("#nav");
+  menuBtn.addEventListener("click", () => {
+    const open = nav.classList.toggle("is-open");
+    menuBtn.setAttribute("aria-expanded", String(open));
+    menuBtn.textContent = open ? "Close" : "Menu";
+  });
+  nav.addEventListener("click", (e) => {
+    if (e.target.closest("a") && nav.classList.contains("is-open")) menuBtn.click();
+  });
+
+  /* ---------- reveal on scroll ---------- */
+  const reveals = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px" });
+    reveals.forEach((r) => io.observe(r));
+  } else {
+    reveals.forEach((r) => r.classList.add("is-in"));
+  }
 
   /* ---------- /?sample runs the sample at once (a link to show someone) ---------- */
   if (new URLSearchParams(location.search).has("sample")) $("#sample-btn").click();
