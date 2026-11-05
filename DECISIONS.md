@@ -290,3 +290,13 @@ Each entry: choice, alternative considered, why, trade-off.
 - Alternative: have a model or a person write plausible-but-wrong propositions.
 - Why: truth by construction, no model-made labels, and it tests the real lawyer failure ("the case exists but does not say that"). Dev only; test is built once after freezing.
 - Trade-off: noisy in one direction (a case can happen to say the same thing), so "supported" on a hard negative is a warning sign, not proof of error. Positives remain noisy as in v1.
+
+## Later-treatment flags from the courts' own headnotes (2026-11-05)
+- Choice: new table `treatments`, built by `data/build_treatments.py` from headnote lines of the form "<citation> - overruled" in the corpus. Cited cases are resolved with the verifier's proven-only rules. Only the strong labels (overruled, partly overruled, disapproved, held per incuriam) move a VERIFIED result to NEEDS_REVIEW; soft labels (distinguished, followed, ...) are shown only. A neutral label ("referred to", "relied on") closes the citation group before it, so a case can never inherit the next case's label (found in a first spot-check, fixed, tested).
+- Alternative: have an LLM read judgments for "is this still good law", or read every sentence containing "overruled".
+- Why: the labels are written by the court, so no model is involved, it is free and repeatable, and every flag carries its source line. This is the feature lawyers value most after existence checks.
+- Trade-off: coverage is limited to judgments that print such a headnote (2,422 label rows, about 100 strong ones, in 38,397 judgments), so "no flag" never means "good law". It is a signal for review, not a verdict. Schema change: one new table, droppable; `scripts/check_treatments.py` prints a sample for reading. Precision is NOT measured on a labelled set; the spot-check was read by Claude, not by a lawyer.
+
+## SCR "Suppl." with an "l" (2026-11-05)
+- Choice: the SCR pattern and parser accept "Supp" and "Suppl". Found because a famous headnote ("[1976] Suppl. SCR 172") was not extracted.
+- Why: drafts and headnotes spell it both ways; missing one loses a proven anchor. Alias table and treatments are rebuilt after the change.

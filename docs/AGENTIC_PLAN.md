@@ -31,7 +31,8 @@ So the first fixes are not "more agents"; they are (B) stop asking the model to 
   single-shot baseline on v2 dev.
 - E. Locator agent for citations not resolved: proposes candidates, result is NEEDS_REVIEW only, never VERIFIED.
 - F. Orchestrator, trace panel in the report, cost caps; agents stay off on the live site until measured.
-- G. Treatment check (is the case later overruled/distinguished), later.
+- G. Treatment check (is the case later overruled/distinguished). DONE in a deterministic form, no model:
+  `data/build_treatments.py`, `checks/treatment.py` (headnote labels written by the court).
 
 ## Cost and time
 Local model runs are free (about 45 s per item). Any paid API run needs an estimate first; above $2 ask.

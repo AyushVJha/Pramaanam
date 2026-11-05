@@ -102,3 +102,12 @@ def test_scc_does_not_run_on_into_a_following_citation():
     scc_match = SCC.search(text)
     assert air_match.group(0) == "AIR 2005 SC 626"
     assert scc_match.group(0) == "(2005) 1 SCC 787"
+
+
+def test_suppl_with_an_l_is_a_supplement_citation():
+    from pramaan.citations.extract import extract
+
+    cits = [c for c in extract("[1976] Suppl. SCR 172 and [1976] Suppl. 1 SCR 172")
+            if c.format == "SCR"]
+    assert [(c.parsed.reporter, c.parsed.volume, c.parsed.page) for c in cits] == [
+        ("SCR-SUPP", None, 172), ("SCR-SUPP", 1, 172)]

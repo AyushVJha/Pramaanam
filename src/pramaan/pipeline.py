@@ -28,6 +28,7 @@ from pramaan.checks.paragraph import ParagraphResult, check_paragraph
 from pramaan.checks.quotes import QuoteResult, check_quote
 from pramaan.checks.second_reading import second_reading
 from pramaan.checks.support import SupportResult, check_support
+from pramaan.checks.treatment import Treatment, adverse, treatments_of
 from pramaan.citations.extract import Citation, extract
 from pramaan.llm.client import Backend
 from pramaan.resolve.names import DECISION_YEAR_SQL
@@ -60,6 +61,7 @@ class CitationReport(BaseModel):
     paragraph: ParagraphResult | None = None
     support: SupportResult | None = None  # the AI second opinion; never raises a status
     draft_quote: str | None = None  # the quotation as the draft gave it
+    treatments: list[Treatment] = []  # later judgments' headnote labels for this case
     suggestions: list[Suggestion] = []  # locator agent: possible matches, for a person to check
     agent_note: str | None = None  # what the agents did or why they were skipped
     agent_trace: list[dict] = []  # step-by-step record of the agent run(s)
@@ -145,8 +147,9 @@ def check_citation(
     case_id = resolution.case_id
     title, year = _case_info(con, case_id)
     proven = is_proven(resolution)
+    treatments = treatments_of(con, case_id)
     found = {**base, "resolution": resolution, "case_id": case_id, "case_title": title,
-             "case_year": year, "case_proven": proven}
+             "case_year": year, "case_proven": proven, "treatments": treatments}
     weak = "" if proven else _weak_reason(resolution)
 
     def warn(status: Status, reason: str, linked: bool = True, what: str = "") -> CitationReport:
@@ -256,6 +259,15 @@ def check_citation(
         else:
             reason = f"Found, and no problem detected, but not proven to be the cited case. {weak}"
         return CitationReport(**found, status="NEEDS_REVIEW", reason=reason)
+    bad = adverse(treatments)
+    if bad:
+        t = bad[0]
+        return CitationReport(
+            **found, status="NEEDS_REVIEW",
+            reason=f"The case exists, but a later judgment ({t.citing_title}, {t.citing_year}) "
+            f"marks it '{t.label}' in its headnote. Check whether it is still good law for the "
+            "point you cite it for.",
+        )
     checked = (
         "The case exists, name and year match" + (", the quote is verbatim" if citation.quoted_text
                                                   else "") + ". "

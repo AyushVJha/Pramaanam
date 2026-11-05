@@ -23,7 +23,7 @@ class ParsedCitation(BaseModel):
 # the dataset's own form) or in brackets after it ("[1992] Supp. (2) SCR 1").
 _SCR = re.compile(
     r"^[\[\(]\s*(\d{4})\s*[\]\)]\s*(\d{1,2})?\s*"
-    r"(?:(supp)\.?\s*(?:\(?(\d{1,2})\)?\s*)?)?"
+    r"(?:(suppl?)\.?\s*(?:\(?(\d{1,2})\)?\s*)?)?"
     r"S\.?\s?C\.?\s?R\.?\s+(\d{1,4})$",
     re.IGNORECASE,
 )
