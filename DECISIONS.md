@@ -255,8 +255,8 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Why:** lawyers upload confidential drafts, so the page must not talk to anyone but our server, and a CSP that forbids everything else is easy to defend. No build step keeps the repo simple to run and review. Every server value is inserted with `textContent`, never `innerHTML`.
 - **Trade-off:** hand-written DOM code instead of components; system fonts look slightly different per OS. The accuracy figures are static text copied from docs/TEST_RUN_2026-11-05.txt and must be updated by hand when a new measured run replaces them.
 
-## Plain, document-style web page (replaces "ink and brass")
-- **Choice:** white page, near-black text, one navy accent, hairline rules, 4 px corners, no gradients, shadows, pills or animation. Inter (interface) and Source Serif 4 (judgment text), both self-hosted from `static/fonts/` under the SIL Open Font License. Method, statuses and accuracy are plain lists and tables with factual wording.
-- **Alternative:** the earlier cream and brass palette with a display serif, glow backgrounds, pill badges and slogan headlines.
-- **Why:** the earlier look was judged to read as generated and not as a professional legal tool. Lawyers expect something closer to a court or regulator site: sober, dense, legible.
-- **Trade-off:** less visual personality. Two font files (about 150 KB) are shipped with the app; the CSP is unchanged because fonts come from our own origin. The downloadable annexure uses the same palette.
+## Editorial web page (replaces "ink and brass" and the short-lived plain version)
+- **Choice:** a law-report look. A dark title page with an annotated sample page as the hero image (built in HTML, showing the checker's real verdicts on the sample draft), then warm paper sections, one claret accent, § section marks and Roman-numeral tests. Case names are italic, as in legal citation style. Fonts: Newsreader (serif), IBM Plex Sans and IBM Plex Mono, self-hosted under the SIL Open Font License. Two optional photographs (`static/img/hero.jpg`, `library.jpg`) appear only if the files exist.
+- **Alternative:** (a) the first cream and brass design with glow, pills and slogans, which read as generated; (b) a plain white page with tables, which read like an internal dashboard.
+- **Why:** lawyers trust what looks like their own material, meaning law reports and well-set briefs. Showing the product's real output in the hero is more convincing than icons or stock art.
+- **Trade-off:** about 360 KB of fonts. The page is light-only (no dark mode) so the look stays controlled. Photographs are left to the owner, and the page must work without them.

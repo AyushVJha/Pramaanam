@@ -270,13 +270,13 @@
     const [kind, label] = STATUS[r.status] || ["none", r.status];
     node.classList.add(`s-${kind}`);
     node.dataset.status = r.status;
-    $(".cit__no", node).textContent = String(index + 1).padStart(2, "0");
+    $(".cit__no", node).textContent = `No. ${index + 1}`;
     const chip = $(".tag", node);
     chip.textContent = label;
     chip.classList.add(`tag--${kind}`);
     $(".cit__code", node).textContent = r.status;
     $(".cit__name", node).textContent = r.case_name || prettyTitle(r.case_title) || r.raw;
-    $(".cit__raw", node).textContent = r.raw;
+    $(".cit__rawtext", node).textContent = r.raw;
     $(".cit__reason", node).textContent = r.reason;
 
     const dl = $(".cit__facts", node);
@@ -363,7 +363,11 @@
     list.textContent = "";
     if (!reports.length) {
       const empty = el("li", "cit s-none");
-      empty.append(
+      const side = el("div", "cit__side");
+      side.append(el("span", "tag tag--none", "No citations"));
+      const main = el("div", "cit__main");
+      empty.append(side, main);
+      main.append(
         el("h3", "cit__name", "Nothing to check"),
         el("p", "cit__reason", "The checker looks for citations such as 2023 INSC 11, [1973] 1 S.C.R. 1, (2019) 7 SCC 42 or AIR 1960 SC 137. Short forms such as “supra” are not checked."),
       );
@@ -437,7 +441,7 @@
     results.hidden = true;
     form.reset();
     drop.classList.remove("has-file");
-    $("#drop-title").textContent = "Choose a file or drop it here";
+    $("#drop-title").textContent = "Drop your draft here";
     $("#drop-hint").textContent = $("#drop-hint").dataset.initial || $("#drop-hint").textContent;
     $("#checker").scrollIntoView({ behavior: "smooth", block: "center" });
   });
@@ -449,6 +453,22 @@
     btn.textContent = text;
     setTimeout(() => { btn.innerHTML = original; }, 1600);
   }
+
+  /* ---------- optional photographs: shown only if the files exist in /static/img ---------- */
+  function plate(src, apply) {
+    const img = new Image();
+    img.onload = () => apply(src);
+    img.src = src;
+  }
+  plate("/static/img/hero.jpg", (src) => {
+    const p = $("#hero-plate");
+    p.style.backgroundImage = `url("${src}")`;
+    p.classList.add("is-loaded");
+  });
+  plate("/static/img/library.jpg", (src) => {
+    $("#plate-img").style.backgroundImage = `url("${src}")`;
+    $("#plate").hidden = false;
+  });
 
   /* ---------- /?sample runs the sample at once (a link to show someone) ---------- */
   if (new URLSearchParams(location.search).has("sample")) $("#sample-btn").click();
