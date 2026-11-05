@@ -1,6 +1,9 @@
 # Running the demo on an Oracle Cloud Always Free VM
 
-Status: written 2026-11-05, NOT yet tried on a real Oracle VM. The Docker image has never been built
+Status: the Docker route below is still untried. What actually runs (2026-11-05) is described in the
+section "What is actually deployed" at the end.
+
+Original status line: written 2026-11-05, NOT yet tried on a real Oracle VM. The Docker image has never been built
 (no Docker on the dev machine), and Oracle's current free limits were not confirmed (sources
 disagree). Do the steps in order and stop at the first surprise.
 
@@ -55,3 +58,18 @@ For HTTPS, point a hostname at the IP (a free DNS name works), set SITE_ADDRESS 
 ## Not measured / not done
 Build time on ARM, memory under load on a 1 GB shape, behaviour behind Caddy, whether Oracle reclaims
 an idle instance, uptime. Keep the paid VPS option (DEPLOY.md) as the fallback.
+
+## What is actually deployed (2026-11-05)
+- Hyderabad (ap-hyderabad-1) had no free ARM capacity ("Out of host capacity" for A1.Flex), so the server is
+  the free AMD shape VM.Standard.E2.1.Micro: 1 OCPU, 956 MB RAM, 50 GB disk, Ubuntu 22.04. Created with the
+  OCI command-line tool (`oci session authenticate`, then `oci compute instance launch`).
+- No Docker (building images on 1 GB is fragile). The app runs from `/opt/pramaan` with `uv sync --python 3.12`,
+  as a systemd service (`deploy/native/pramaan.service`, memory capped at 700 MB), behind Caddy on port 80
+  (`deploy/native/Caddyfile`). A 2 GB swap file was added. Ports 80 and 443 were opened in the VCN security
+  list and in the server's iptables (saved with iptables-persistent).
+- The serving database was copied straight from the laptop with rsync (no public upload), its SHA-256 checked
+  against `dist/pramaan-serving.sha256`, then unpacked to `/opt/pramaan/data/pramaan.db`.
+- Checked from outside: `/health` returns ok, and `demo/mixed_draft.txt` returns the expected statuses.
+- Not done: HTTPS (needs a hostname), a retry for the bigger ARM shape, any monitoring or backups,
+  a test of a reboot, and a measurement of speed and memory under several simultaneous users.
+- Update the code: `rsync` the `src/` folder again, then `sudo systemctl restart pramaan`.

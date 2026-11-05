@@ -1,0 +1,15 @@
+[Unit]
+Description=Pramaanam web app
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/pramaan
+Environment=PRAMAAN_DB_PATH=/opt/pramaan/data/pramaan.db
+ExecStart=/opt/pramaan/.venv/bin/uvicorn pramaan.api.app:app --host 127.0.0.1 --port 8000 --proxy-headers
+Restart=on-failure
+RestartSec=3
+MemoryMax=700M
+
+[Install]
+WantedBy=multi-user.target
