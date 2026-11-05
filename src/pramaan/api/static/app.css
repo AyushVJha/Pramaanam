@@ -100,8 +100,8 @@ i, em { font-style: italic; }
 .hero::before { content: ""; position: absolute; inset: 0; background: var(--grain); opacity: .22; mix-blend-mode: overlay; z-index: -1; pointer-events: none; }
 .hero::after { content: ""; position: absolute; inset: auto -20% -60% 30%; height: 120%; background: radial-gradient(closest-side, rgba(222, 154, 143, .10), transparent 70%); z-index: -2; pointer-events: none; }
 .hero__plate { position: absolute; inset: 0; z-index: -3; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease; }
-.hero__plate.is-loaded { opacity: .28; }
-.hero__plate.is-loaded::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--night) 25%, color-mix(in srgb, var(--night) 55%, transparent)); }
+.hero__plate.is-loaded { opacity: .62; }
+.hero__plate.is-loaded::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--night) 18%, color-mix(in srgb, var(--night) 72%, transparent) 48%, color-mix(in srgb, var(--night) 30%, transparent)), linear-gradient(0deg, var(--night), transparent 30%); }
 .hero__grid { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); gap: clamp(40px, 6vw, 88px); align-items: center; }
 @media (max-width: 1000px) { .hero__grid { grid-template-columns: 1fr; } }
 
