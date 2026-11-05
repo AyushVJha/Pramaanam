@@ -377,6 +377,10 @@ mark.add { background: var(--add-bg); color: var(--add); padding: 0 2px; }
 .footer__brand { margin: 0; font: 400 30px/1 var(--serif); color: var(--on-night); }
 .footer__brand span { font-size: 22px; color: var(--on-night-3); margin-left: 8px; }
 .footer__gloss { margin: 10px 0 0; font: italic 400 16px/1.4 var(--serif); color: var(--on-night-3); }
+.footer__by { flex-basis: 100%; margin: 8px 0 0; padding-top: 24px; border-top: 1px solid var(--night-3); font-size: 14.5px; color: var(--on-night-2); }
+.footer__by b { font-weight: 500; color: var(--on-night); }
+.footer__by a { color: var(--on-night); text-underline-offset: 3px; text-decoration-color: var(--on-night-3); }
+.footer__by a:hover { text-decoration-color: var(--on-night); }
 .footer__attr { margin: 0; max-width: 34em; font-size: 13px; color: var(--on-night-3); }
 
 @media (prefers-reduced-motion: reduce) {
