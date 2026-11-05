@@ -266,3 +266,9 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** rename everything, or keep "Pramaan".
 - **Why:** a display-only change is reversible in minutes and cannot break imports, deployment files or the benchmark scripts.
 - **Trade-off:** the visible name and the code name differ. Domain, GitHub repo name and any public posting are still undecided and need the owner; not checked whether "Pramaanam" is already used by another product.
+
+## Agent runtime: a small custom loop, with a status guard (2026-11-05)
+- Choice: `src/pramaan/agents/runtime.py`, a framework-free JSON-turn loop (tool or finish), budgets for steps, seconds, dollars and observation size, answers verified by code; `agents/guard.py` forbids any agent from setting VERIFIED.
+- Alternative: LangGraph, OpenAI Agents SDK or the Claude Agent SDK.
+- Why: the loop is short enough to explain line by line; budgets and the guard are visible and tested; it works with the local Ollama model that costs nothing, and all calls keep going through llm/client.py (cache, cost log).
+- Trade-off: no built-in tracing UI, parallel tools or streaming; we write them if needed. Reversible: tools and verifiers are plain functions that a framework could call.
