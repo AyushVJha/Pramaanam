@@ -63,7 +63,7 @@ def test_ollama_backend_sends_chat_request_and_reads_counts(monkeypatch):
 
     seen = {}
 
-    def fake_urlopen(request, timeout):
+    def fake_urlopen(request, timeout, **kw):
         seen["url"] = request.full_url
         seen["body"] = json.loads(request.data)
         reply = {"message": {"content": '{"a": 1}'}, "prompt_eval_count": 12, "eval_count": 3}
@@ -101,7 +101,7 @@ def test_openai_compat_backend_builds_request_and_reads_usage(monkeypatch):
     monkeypatch.setattr(config, "OPENAI_PATH", "/v1/chat/completions")  # not the local .env
     seen = {}
 
-    def fake_urlopen(request, timeout):
+    def fake_urlopen(request, timeout, **kw):
         seen["url"] = request.full_url
         seen["auth"] = request.get_header("Authorization")
         reply = {"choices": [{"message": {"content": "{}"}}],
@@ -142,7 +142,7 @@ def test_openai_backend_retries_429_then_succeeds(monkeypatch):
         def read(self):
             return b'{"choices":[{"message":{"content":"ok"}}],"usage":{"prompt_tokens":3}}'
 
-    def fake_urlopen(req, timeout):
+    def fake_urlopen(req, timeout, **kw):
         calls.append(1)
         if len(calls) < 3:
             raise urllib.error.HTTPError("u", 429, "slow down", {"Retry-After": "0"}, io.BytesIO())
@@ -163,7 +163,7 @@ def test_openai_backend_gives_up_on_401(monkeypatch):
 
     from pramaan.llm import client
 
-    def fake_urlopen(req, timeout):
+    def fake_urlopen(req, timeout, **kw):
         raise urllib.error.HTTPError("u", 401, "no", {}, io.BytesIO())
 
     monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)

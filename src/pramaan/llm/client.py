@@ -11,6 +11,7 @@ package is imported only when a real call is made.
 
 import json
 import logging
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -129,6 +130,16 @@ class OllamaBackend:
         )
 
 
+def _ssl_context() -> ssl.SSLContext:
+    """HTTPS trust store. python.org builds on macOS ship without one; certifi has it."""
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 class OpenAICompatBackend:
     """Any server speaking the OpenAI chat API (llama.cpp server, vLLM). Standard library only."""
 
@@ -146,11 +157,14 @@ class OpenAICompatBackend:
         """POST with backoff on rate limits (429) and server errors (5xx): free tiers need it."""
         for attempt in range(1, RETRIES + 1):
             try:
-                with urllib.request.urlopen(request, timeout=self._timeout) as response:
+                with urllib.request.urlopen(
+                    request, timeout=self._timeout, context=_ssl_context()
+                ) as response:
                     return json.loads(response.read())
             except urllib.error.HTTPError as e:
                 if e.code not in (429, 500, 502, 503, 504) or attempt == RETRIES:
-                    msg = f"Model server returned HTTP {e.code} at {self._url}."
+                    detail = e.read()[:300].decode("utf-8", "replace") if e.fp else ""
+                    msg = f"Model server returned HTTP {e.code} at {self._url}. {detail}"
                     raise RuntimeError(msg) from e
                 wait = float(e.headers.get("Retry-After") or BASE_WAIT * 2 ** (attempt - 1))
                 time.sleep(min(wait, MAX_WAIT))
