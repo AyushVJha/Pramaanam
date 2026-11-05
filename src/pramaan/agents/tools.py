@@ -101,6 +101,10 @@ class CaseFinder:
     def __init__(self, con: sqlite3.Connection):
         self.con = con
         self.seen: set[str] = set()  # case ids the model has been shown
+        # The small serving database has no paragraph full-text index, so that tool is left out.
+        self.has_text_index = con.execute(
+            "SELECT 1 FROM sqlite_master WHERE name = 'paragraphs_fts'"
+        ).fetchone() is not None
 
     def _line(self, case_id: str, title: str, year: int | None, extra: str = "") -> str:
         self.seen.add(case_id)
@@ -158,12 +162,14 @@ class CaseFinder:
         return f"{a.case_id} | {row[0]} | {row[1]} | judges: {(row[2] or '')[:200]}"
 
     def tools(self) -> list[Tool]:
-        return [
+        tools = [
             Tool("find_by_party_names", "judgments whose party names resemble these",
                  PartyArgs, self.by_party),
             Tool("find_by_citation", "judgments recorded under a reporter citation",
                  CitationArgs, self.by_citation),
-            Tool("find_by_text", "judgments whose text contains distinctive words",
-                 TextArgs, self.by_text),
             Tool("case_info", "title, year and judges of one case id", CaseArgs, self.case_info),
         ]
+        if self.has_text_index:
+            tools.insert(2, Tool("find_by_text", "judgments whose text contains distinctive words",
+                                 TextArgs, self.by_text))
+        return tools

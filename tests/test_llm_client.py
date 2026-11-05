@@ -187,3 +187,35 @@ def test_dotenv_is_read_but_never_overrides(tmp_path, monkeypatch):
     assert os.environ["PRAMAAN_T_C"] == "already"
     for k in ("PRAMAAN_T_A", "PRAMAAN_T_B"):
         monkeypatch.delenv(k, raising=False)
+
+
+def test_cache_false_never_touches_the_disk_cache(tmp_path):
+    from pramaan.llm.client import RawReply, complete
+
+    class B:
+        calls = 0
+
+        def create(self, **kw):
+            B.calls += 1
+            return RawReply(text="x", input_tokens=1, output_tokens=1)
+
+    cache = tmp_path / "cache"
+    for _ in range(2):
+        complete("p", "s", model="m", backend=B(), cache_dir=cache, usage_log=tmp_path / "u",
+                 cache=False)
+    assert B.calls == 2 and not cache.exists()  # nothing written, nothing reused
+
+
+def test_openai_backend_reports_an_empty_reply_instead_of_crashing(monkeypatch):
+    import io
+
+    import pytest
+
+    from pramaan.llm import client
+
+    reply = b'{"choices":[{"finish_reason":"function_call_filter: MALFORMED","message":{}}]}'
+    monkeypatch.setattr(client.urllib.request, "urlopen",
+                        lambda req, timeout, **kw: io.BytesIO(reply))
+    with pytest.raises(RuntimeError, match="no text"):
+        client.OpenAICompatBackend(url="http://x").create(model="m", system="s", prompt="p",
+                                                         max_tokens=5)

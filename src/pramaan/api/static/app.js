@@ -146,6 +146,8 @@
     data.append("draft", blob, blob.name || name);
     const llm = form.querySelector('input[name="use_llm"]');
     if (llm && llm.checked) data.append("use_llm", "true");
+    const agents = form.querySelector('input[name="use_agents"]');
+    if (agents && agents.checked) data.append("use_agents", "true");
     return data;
   }
 
@@ -269,6 +271,15 @@
     });
   }
 
+  const AI_SAYS = {
+    supported: "The judgment appears to support this.",
+    partially_supported: "The judgment supports only part of this.",
+    not_supported: "The judgment does not appear to say this.",
+    contradicted: "The judgment appears to say the opposite.",
+    cannot_determine: "The AI could not decide.",
+  };
+  const STRONG_TREATMENT = ["overruled", "partly overruled", "disapproved", "held per incuriam"];
+
   function fact(dl, label, value) {
     if (!value) return;
     const row = el("div");
@@ -296,6 +307,22 @@
     if (r.paragraph && r.paragraph.status !== "cannot_check" && r.paragraph.explanation) {
       fact(dl, "Paragraph", r.paragraph.explanation);
     }
+    const ai = r.support;
+    if (ai && ai.attempts) {
+      const said = AI_SAYS[ai.verdict] || ai.verdict;
+      fact(dl, "AI reading", ai.reason ? `${said} ${ai.reason}` : said);
+      (ai.evidence || []).slice(0, 2).forEach((ev) => {
+        const where = ev.para_no > 0 ? `Paragraph ${ev.para_no}` : "Judgment text";
+        fact(dl, where, `\u201c${ev.quote}\u201d`);
+      });
+    }
+    (r.treatments || []).filter((t) => STRONG_TREATMENT.includes(t.label)).slice(0, 2).forEach((t) => {
+      fact(dl, "Later treatment", `Marked \u201c${t.label}\u201d by ${prettyTitle(t.citing_title)}${t.citing_year ? ` (${t.citing_year})` : ""}`);
+    });
+    (r.suggestions || []).forEach((sg) => {
+      fact(dl, "Possible match", `${prettyTitle(sg.title)}${sg.year ? ` (${sg.year})` : ""} \u2013 not confirmed`);
+    });
+    if (r.agent_note) fact(dl, "AI check", r.agent_note);
     if (!dl.children.length) dl.remove();
 
     const q = r.quote;

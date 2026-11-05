@@ -25,7 +25,7 @@ from pramaan.llm.cache import cache_get, cache_key, cache_put
 
 log = logging.getLogger(__name__)
 
-RETRIES, BASE_WAIT, MAX_WAIT = 6, 5.0, 60.0  # free tiers rate-limit: waits 5, 10, 20, 40, 60 s
+BASE_WAIT, MAX_WAIT = 5.0, 60.0  # free tiers rate-limit: waits 5, 10, 20, 40, 60 s
 
 
 class RawReply(BaseModel):
@@ -155,14 +155,15 @@ class OpenAICompatBackend:
 
     def _send(self, request: urllib.request.Request) -> dict:
         """POST with backoff on rate limits (429) and server errors (5xx): free tiers need it."""
-        for attempt in range(1, RETRIES + 1):
+        retries = config.LLM_RETRIES
+        for attempt in range(1, retries + 1):
             try:
                 with urllib.request.urlopen(
                     request, timeout=self._timeout, context=_ssl_context()
                 ) as response:
                     return json.loads(response.read())
             except urllib.error.HTTPError as e:
-                if e.code not in (429, 500, 502, 503, 504) or attempt == RETRIES:
+                if e.code not in (429, 500, 502, 503, 504) or attempt == retries:
                     detail = e.read()[:300].decode("utf-8", "replace") if e.fp else ""
                     msg = f"Model server returned HTTP {e.code} at {self._url}. {detail}"
                     raise RuntimeError(msg) from e
@@ -189,8 +190,13 @@ class OpenAICompatBackend:
         request = urllib.request.Request(self._url, json.dumps(body).encode("utf-8"), headers)
         data = self._send(request)
         usage = data.get("usage", {})
+        choice = (data.get("choices") or [{}])[0]
+        if not (choice.get("message") or {}).get("content"):
+            # No text came back (a provider filter, a blocked reply). Say why instead of crashing.
+            why = choice.get("finish_reason")
+            raise RuntimeError(f"Model returned no text (finish_reason: {why})")
         return RawReply(
-            text=data["choices"][0]["message"]["content"] or "",
+            text=choice["message"]["content"],
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
         )
@@ -222,6 +228,7 @@ def complete(
     backend: Backend | None = None,
     cache_dir: Path | None = None,
     usage_log: Path | None = None,
+    cache: bool = True,  # False: never read or write the disk cache (user text on a web server)
 ) -> LLMResult:
     model = model or config.JUDGE_MODEL
     cache_dir = cache_dir if cache_dir is not None else config.LLM_CACHE_DIR
@@ -230,7 +237,7 @@ def complete(
     key = cache_key(model, system, prompt, {"max_tokens": max_tokens})
     start = time.perf_counter()
 
-    hit = cache_get(cache_dir, key)
+    hit = cache_get(cache_dir, key) if cache else None
     if hit is not None:
         result = LLMResult(
             text=hit["text"],
@@ -244,7 +251,8 @@ def complete(
     else:
         backend = backend or make_backend()
         reply = backend.create(model=model, system=system, prompt=prompt, max_tokens=max_tokens)
-        cache_put(cache_dir, key, reply.model_dump())
+        if cache:
+            cache_put(cache_dir, key, reply.model_dump())
         result = LLMResult(
             text=reply.text,
             model=model,

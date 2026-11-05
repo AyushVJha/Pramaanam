@@ -93,3 +93,59 @@ def test_page_assets_are_served_with_a_strict_security_policy(db_path):
     for asset in ("/static/app.css", "/static/app.js", "/static/favicon.svg"):
         assert c.get(asset).status_code == 200
     assert c.get("/static/../app.py").status_code == 404
+
+
+# --- the reading agent on the web ---
+def test_agents_are_off_by_default_and_the_box_is_hidden(db_path):
+    c = TestClient(create_app(db_path))
+    assert "use_agents" not in c.get("/").text
+    r = upload(c, "d.txt", b"1960 INSC 5", use_agents="true")
+    assert r.status_code == 400 and "not enabled" in r.json()["detail"]
+
+
+def test_agent_box_says_what_is_sent_where_when_enabled(db_path):
+    page = TestClient(create_app(db_path, agents_enabled=True)).get("/").text
+    assert 'name="use_agents"' in page and "Gemini" in page and "never a green tick" in page
+    assert "{{AGENT_BOX}}" not in page
+
+
+def test_agent_run_uses_the_orchestrator_without_a_disk_cache(db_path, monkeypatch):
+    seen = {}
+
+    def fake_review(con, text, budget, **kw):
+        from pramaan.citations.extract import extract
+        from pramaan.pipeline import check_citation
+
+        seen["kw"], seen["budget"] = kw, budget
+        return [check_citation(con, c, use_llm=False) for c in extract(text)]
+
+    monkeypatch.setattr("pramaan.api.app.review_text", fake_review)
+    c = TestClient(create_app(db_path, agents_enabled=True))
+    r = upload(c, "d.txt", b"Ram Lal v. State of Bihar, 1960 INSC 5 held X.", use_agents="true")
+    assert r.status_code == 200 and r.json()["agents_used"] is True
+    assert seen["kw"] == {"cache": False}  # what a visitor wrote is never saved
+    assert seen["budget"].max_agent_calls <= 4 and seen["budget"].max_seconds <= 150
+
+
+def test_a_second_agent_job_is_told_to_wait_not_queued(db_path, monkeypatch):
+    import threading
+
+    started, release = threading.Event(), threading.Event()
+
+    def slow_review(con, text, budget, **kw):
+        started.set()
+        release.wait(5)
+        return []
+
+    monkeypatch.setattr("pramaan.api.app.review_text", slow_review)
+    c = TestClient(create_app(db_path, agents_enabled=True))
+    results = []
+    t = threading.Thread(target=lambda: results.append(
+        upload(c, "d.txt", b"1960 INSC 5", use_agents="true")))
+    t.start()
+    assert started.wait(5)
+    second = upload(c, "d.txt", b"1960 INSC 5", use_agents="true")
+    release.set()
+    t.join()
+    assert second.status_code == 503 and "busy" in second.json()["detail"]
+    assert results[0].status_code == 200

@@ -95,6 +95,8 @@ Rules:
 - For supported, partially_supported and contradicted, "paras" must list paragraph numbers that \
 you READ IN FULL with read_paragraph. Give numbers only, never copy text.
 - For not_supported you must have searched at least once.
+- In "reason", say "the judgment". Never name a case, party or statute that does not appear in the \
+paragraphs you saw, and never describe the judgment from memory.
 - If a case merely mentions the proposition in passing, or quotes another case for it, say so in \
 the reason and prefer partially_supported or cannot_determine.
 - Finish with: {"action":"finish","answer":{"verdict":"...","paras":[...],\

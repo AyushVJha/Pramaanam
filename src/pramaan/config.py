@@ -46,6 +46,9 @@ OPENAI_API_KEY = os.environ.get("PRAMAAN_OPENAI_API_KEY", "")
 # Path after the URL. Default is the OpenAI one; Gemini's compatible endpoint uses
 # URL=https://generativelanguage.googleapis.com/v1beta/openai and PATH=/chat/completions
 OPENAI_PATH = os.environ.get("PRAMAAN_OPENAI_PATH", "/v1/chat/completions")
+# How many times a rate-limited (429) or overloaded (5xx) call is retried. A public web request
+# should give up sooner than a benchmark run, so the server sets this lower.
+LLM_RETRIES = int(os.environ.get("PRAMAAN_LLM_RETRIES", "6"))
 LLM_CACHE_DIR = Path(os.environ.get("PRAMAAN_LLM_CACHE_DIR", "data/llm_cache"))
 LLM_USAGE_LOG = Path("logs/llm_usage.jsonl")
 

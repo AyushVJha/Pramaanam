@@ -10,6 +10,9 @@ Safe-by-default for a public host:
 - uploads are read in memory / a temp file that is deleted at once; nothing is stored or logged;
 - the LLM support check is OFF unless the operator sets PRAMAAN_ENABLE_LLM=1 on the server, and
   even then a visitor must ask for it (it sends judgment paragraphs to the configured model);
+- the reading agent is OFF unless the operator sets PRAMAAN_ENABLE_AGENTS=1, a visitor must tick a
+  box that says what is sent where, only one agent job runs at a time, an agent job is capped in
+  citations, steps and seconds, and no model reply is cached on disk;
 - upload size and citations per draft are capped, so one visitor cannot hog the machine.
 """
 
@@ -18,6 +21,7 @@ import logging
 import os
 import sqlite3
 import tempfile
+import threading
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -28,6 +32,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from pramaan import config
+from pramaan.agents.orchestrator import DraftBudget, review_text
+from pramaan.agents.runtime import Budget
 from pramaan.api.ratelimit import RateLimiter
 from pramaan.citations.extract import extract
 from pramaan.data.draft_reader import SUPPORTED, read_draft
@@ -78,9 +84,33 @@ LLM_BOX = (
 )
 
 
-def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> FastAPI:
+AGENT_BOX = (
+    '<label class="llm"><input type="checkbox" name="use_agents" value="1"> <span>'
+    "<strong>AI reading check (experimental).</strong> For up to {n} citations, an AI agent reads "
+    "the cited judgment and says whether it supports what your draft says, quoting the paragraph "
+    "it relied on. <em>What is sent:</em> the sentence around each checked citation and "
+    "paragraphs of the matched judgment, to Google&rsquo;s Gemini API (free tier, where Google "
+    "may use inputs to improve its models). Nothing is stored here. It can only add warnings, "
+    "never a green tick, and can take about two minutes.</span></label>"
+)
+# Limits for one web request. Small on purpose: the server has 1 GB and the model is a free tier.
+WEB_AGENT_BUDGET = DraftBudget(
+    max_agent_calls=4, max_cost_usd=0.50, max_seconds=150,
+    per_run=Budget(max_steps=5, max_seconds=50, max_cost_usd=0.05),
+)
+
+
+def create_app(
+    db_path: Path | None = None, llm_enabled: bool | None = None,
+    agents_enabled: bool | None = None,
+) -> FastAPI:
     db = db_path or config.DB_PATH
     llm_ok = llm_enabled if llm_enabled is not None else os.environ.get("PRAMAAN_ENABLE_LLM") == "1"
+    agents_ok = (
+        agents_enabled if agents_enabled is not None
+        else os.environ.get("PRAMAAN_ENABLE_AGENTS") == "1"
+    )
+    agent_gate = threading.BoundedSemaphore(1)  # one agent job at a time on this small host
     limiter = RateLimiter(RATE_LIMIT, 60.0)
 
     def client_of(request: Request) -> str:
@@ -115,11 +145,13 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
     def page() -> str:
         if "html" not in page_cache:  # the database may arrive after start-up; count it then
             if not db.exists():
-                return _render_page("Thousands of", llm_ok)
-            page_cache["html"] = _render_page(_case_count(db), llm_ok)
+                return _render_page("Thousands of", llm_ok, agents_ok)
+            page_cache["html"] = _render_page(_case_count(db), llm_ok, agents_ok)
         return page_cache["html"]
 
-    def run_check(upload: UploadFile, data: bytes, use_llm: bool) -> list[CitationReport]:
+    def run_check(
+        upload: UploadFile, data: bytes, use_llm: bool, use_agents: bool = False
+    ) -> list[CitationReport]:
         suffix = Path(upload.filename or "").suffix.lower()
         if suffix not in SUPPORTED:
             raise HTTPException(400, f"Unsupported file type. Use one of: {sorted(SUPPORTED)}")
@@ -127,6 +159,8 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
             raise HTTPException(413, f"File is larger than {MAX_UPLOAD_BYTES // 1024 // 1024} MB.")
         if use_llm and not llm_ok:
             raise HTTPException(400, "The AI support check is not enabled on this server.")
+        if use_agents and not agents_ok:
+            raise HTTPException(400, "The AI reading check is not enabled on this server.")
         if not db.exists():
             raise HTTPException(503, "The judgment database is not available.")
         with tempfile.TemporaryDirectory() as tmp:  # deleted as soon as the block ends
@@ -141,9 +175,22 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
             raise HTTPException(413, f"More than {MAX_CITATIONS} citations; split the draft.")
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)  # one connection per request
         try:
+            if use_agents:
+                return run_agents(con, text)
             return [check_citation(con, c, use_llm=use_llm) for c in citations]
         finally:
             con.close()
+
+    def run_agents(con: sqlite3.Connection, text: str) -> list[CitationReport]:
+        if not agent_gate.acquire(blocking=False):
+            raise HTTPException(
+                503, "The AI reading check is busy with another draft. Try again in a minute, "
+                "or run the check without it."
+            )
+        try:  # cache=False: nothing the visitor wrote is ever saved to disk
+            return review_text(con, text, WEB_AGENT_BUDGET, cache=False)
+        finally:
+            agent_gate.release()
 
     @app.get("/", response_class=HTMLResponse)
     def home() -> str:
@@ -151,27 +198,32 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
 
     @app.post("/report", response_class=HTMLResponse)
     async def report(
-        request: Request, draft: UploadFile = File(...), use_llm: str = Form("")
+        request: Request, draft: UploadFile = File(...), use_llm: str = Form(""),
+        use_agents: str = Form(""),
     ) -> str:
         throttle(request)
         data = await draft.read(MAX_UPLOAD_BYTES + 1)
-        reports = await run_in_threadpool(run_check, draft, data, bool(use_llm))
-        model = config.JUDGE_MODEL if use_llm else None
+        reports = await run_in_threadpool(
+            run_check, draft, data, bool(use_llm), bool(use_agents)
+        )
+        used = bool(use_llm or use_agents)
         return render_html(
             reports, source=draft.filename or "draft", date=time.strftime("%Y-%m-%d"),
-            llm_used=bool(use_llm), model=model,
+            llm_used=used, model=config.JUDGE_MODEL if used else None,
         )
 
     @app.post("/check")
     async def check(
-        request: Request, draft: UploadFile = File(...), use_llm: bool = Form(False)
+        request: Request, draft: UploadFile = File(...), use_llm: bool = Form(False),
+        use_agents: bool = Form(False),
     ) -> dict:
         throttle(request)
         data = await draft.read(MAX_UPLOAD_BYTES + 1)
-        reports = await run_in_threadpool(run_check, draft, data, use_llm)
+        reports = await run_in_threadpool(run_check, draft, data, use_llm, use_agents)
         return {
             "date": time.strftime("%Y-%m-%d"), "disclaimer": DISCLAIMER,
-            "attribution": ATTRIBUTION, "llm_used": use_llm,
+            "attribution": ATTRIBUTION, "llm_used": use_llm or use_agents,
+            "agents_used": use_agents,
             "citations": report_to_dicts(reports),
         }
 
@@ -182,10 +234,11 @@ def create_app(db_path: Path | None = None, llm_enabled: bool | None = None) -> 
     return app
 
 
-def _render_page(cases: str, llm_ok: bool) -> str:
+def _render_page(cases: str, llm_ok: bool, agents_ok: bool = False) -> str:
     text = (STATIC / "index.html").read_text(encoding="utf-8")
     values = {
         "{{CASES}}": html.escape(cases), "{{LLM_BOX}}": LLM_BOX if llm_ok else "",
+        "{{AGENT_BOX}}": AGENT_BOX.format(n=WEB_AGENT_BUDGET.max_agent_calls) if agents_ok else "",
         "{{MB}}": str(MAX_UPLOAD_BYTES // 1024 // 1024), "{{N}}": str(MAX_CITATIONS),
         "{{ATTRIBUTION}}": html.escape(ATTRIBUTION),
     }
