@@ -66,6 +66,20 @@ def _method_line(llm_used: bool, model: str | None) -> str:
     return f"Checks run: existence, identity, quotes, paragraph, support (model: {model})."
 
 
+def _agent_lines(reports: list[CitationReport]) -> list[str]:
+    """One line per step the agents took, so a reader can see how a finding was reached."""
+    lines = []
+    for i, r in enumerate(reports, 1):
+        for e in r.agent_trace:
+            if e["kind"] == "tool":
+                lines.append(f"{i}. looked up: {e['text'][:160]}")
+            elif e["kind"] == "final":
+                lines.append(f"{i}. answer: {e['text'][:200]}")
+        if r.agent_note:
+            lines.append(f"{i}. {r.agent_note}")
+    return lines
+
+
 def _quote_note(r: CitationReport) -> str:
     """The quotation and the closest words in the judgment, for any report that checked a quote."""
     if not r.draft_quote or r.quote is None or r.quote.status == "too_short":
@@ -107,6 +121,9 @@ def render_markdown(
         for i, r in evidence:
             for ev in r.support.evidence:
                 lines.append(f"- {i}. para {ev.para_no}: \"{ev.quote}\"")
+    steps = _agent_lines(reports)
+    if steps:
+        lines += ["", "## How the agents checked", ""] + [f"- {t}" for t in steps]
     lines += ["", "## What the statuses mean", ""]
     lines += [f"- **{s}**: {m}" for s, m in STATUS_MEANING.items()]
     return "\n".join(lines) + "\n"
@@ -128,6 +145,7 @@ def render_html(
         for i, r in enumerate(reports, 1) if r.support
         for ev in r.support.evidence
     )
+    steps = "".join(f"<li>{esc(t)}</li>" for t in _agent_lines(reports))
     legend = "".join(f"<li><b>{s}</b>: {esc(m)}</li>" for s, m in STATUS_MEANING.items())
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
@@ -153,5 +171,6 @@ def render_html(
         "<table><tr><th>#</th><th>Citation</th><th>Status</th><th>Matched judgment</th>"
         f"<th>Note</th></tr>{''.join(rows)}</table>"
         + (f"<h2>Evidence quoted from the judgments</h2><ul>{evidence}</ul>" if evidence else "")
+        + (f"<h2>How the agents checked</h2><ul>{steps}</ul>" if steps else "")
         + f"<h2>What the statuses mean</h2><ul>{legend}</ul></body></html>"
     )

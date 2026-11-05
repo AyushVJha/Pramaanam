@@ -227,3 +227,14 @@ def test_orchestrator_skips_agents_when_name_mismatch(con, tmp_path):
     r = review_citation(con, cit(name="Totally Different v. Other Person"), Spend(DraftBudget()),
                         backend=fake, **kw(tmp_path))
     assert r.status == "NAME_MISMATCH" and fake.calls == 0
+
+
+def test_report_shows_what_the_agents_did(con, tmp_path):
+    from pramaan.report import render_html, render_markdown
+
+    fake = Scripted(tool("search_judgment", query="limitation"),
+                    finish(verdict="not_supported", paras=[], reason="not there"))
+    r = review_citation(con, cit(), Spend(DraftBudget()), backend=fake, **kw(tmp_path))
+    meta = {"source": "d.txt", "date": "2026-11-05", "llm_used": True, "model": "m"}
+    assert "How the agents checked" in render_markdown([r], **meta)
+    assert "looked up: search_judgment" in render_html([r], **meta)
