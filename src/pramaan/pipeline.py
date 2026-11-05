@@ -22,6 +22,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from pramaan.agents.locator import Suggestion
 from pramaan.checks.identity import IdentityResult, check_identity
 from pramaan.checks.paragraph import ParagraphResult, check_paragraph
 from pramaan.checks.quotes import QuoteResult, check_quote
@@ -59,6 +60,9 @@ class CitationReport(BaseModel):
     paragraph: ParagraphResult | None = None
     support: SupportResult | None = None  # the AI second opinion; never raises a status
     draft_quote: str | None = None  # the quotation as the draft gave it
+    suggestions: list[Suggestion] = []  # locator agent: possible matches, for a person to check
+    agent_note: str | None = None  # what the agents did or why they were skipped
+    agent_trace: list[dict] = []  # step-by-step record of the agent run(s)
     cost_usd: float = 0.0
 
 
@@ -110,6 +114,7 @@ def check_citation(
     model: str | None = None,
     backend: Backend | None = None,
     exclude_citing: str | None = None,  # benchmark use: hide the judgment that built the item
+    support_fn=check_support,  # swap in the reading agent; same signature as check_support
     **client_kw,
 ) -> CitationReport:
     base = {"raw": citation.raw, "case_name": citation.case_name}
@@ -221,7 +226,7 @@ def check_citation(
                 )
 
     if use_llm:
-        support = check_support(
+        support = support_fn(
             con, case_id, citation.proposition, model=model, backend=backend, **client_kw
         )
         found["support"] = support

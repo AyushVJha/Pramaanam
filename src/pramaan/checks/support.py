@@ -65,6 +65,8 @@ class SupportResult(BaseModel):
     cost_usd: float = 0.0
     latency_s: float = 0.0
     failure: str | None = None  # why we fell back to cannot_determine, if we did
+    steps: int = 0  # model calls made by a reading agent (0 for the single-shot judges)
+    trace: list[dict] = []  # what the agent did, step by step (agents only)
 
 
 def _tokens(text: str) -> list[str]:
