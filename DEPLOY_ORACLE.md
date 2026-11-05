@@ -90,3 +90,19 @@ an idle instance, uptime. Keep the paid VPS option (DEPLOY.md) as the fallback.
   sudo systemctl restart pramaan` (the old code is compatible: it ignores the extra table).
 - `pramaan.db.old` (1.8 GB) can be deleted once you are happy; the 50 GB disk has room.
 - The agents are still NOT enabled on the server.
+
+## Update 2026-11-05: AI reading check enabled on the live site (opt-in, experimental)
+- A visitor must tick "AI reading check (experimental)"; the box says what is sent where: the sentence around each
+  checked citation and paragraphs of the matched judgment go to Google's Gemini API (free tier; Google may use
+  inputs to improve its models). Off by default. It can only add warnings, never a green tick.
+- Limits per request: 4 citations, 5 steps and 50 s per citation, 150 s in all; one agent job at a time on the server
+  (a second visitor is told "busy"); `cache=False`, so no model reply is written to disk. The usage log keeps token
+  counts and the model name only (no text).
+- Server config: `/etc/pramaan-agents.env` (root-only, holds the API key and `PRAMAAN_ENABLE_AGENTS=1`,
+  `PRAMAAN_LLM_RETRIES=2`) loaded by a systemd drop-in `/etc/systemd/system/pramaan.service.d/agents.conf`.
+  The key is not in git. To turn the agents off: remove `PRAMAAN_ENABLE_AGENTS` from that file and
+  `sudo systemctl restart pramaan`.
+- Model: `gemini-3.1-flash-lite`. `gemini-3.5-*` models were rejected by Gemini's function-call filter or timed out
+  when tested; larger Flash models often answered "high demand".
+- Not measured: accuracy of the agent on the v2 benchmark (the free tier was too unreliable during the run), and
+  how the free tier behaves under many simultaneous visitors.
