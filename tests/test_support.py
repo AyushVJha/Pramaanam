@@ -114,3 +114,39 @@ def test_no_paragraphs_means_no_model_call(tmp_path):
     fake = Scripted(answer())
     r = judge_support("x", [], backend=fake, cache_dir=tmp_path / "c", usage_log=tmp_path / "u")
     assert r.verdict == "cannot_determine" and r.attempts == 0 and fake.calls == 0
+
+
+# --- evidence by pointer ---
+def ptr(verdict="supported", paras=(2,)):
+    return json.dumps({"verdict": verdict, "paras": list(paras), "reason": "r"})
+
+
+def run_ptr(tmp_path, backend):
+    from pramaan.checks.support import judge_support_pointer
+
+    return judge_support_pointer(
+        "anticipatory bail can be granted", PARAS, backend=backend, model="claude-haiku-5-5",
+        cache_dir=tmp_path / "c", usage_log=tmp_path / "u.jsonl",
+    )
+
+
+def test_pointer_evidence_is_real_text_looked_up_by_code(tmp_path):
+    r = run_ptr(tmp_path, Scripted(ptr()))
+    assert r.verdict == "supported" and r.attempts == 1
+    assert r.evidence[0].para_no == 2
+    assert r.evidence[0].quote in PARAS[1][1]  # copied by code, so it cannot be wrong
+
+
+def test_pointer_to_unknown_paragraph_retries_then_cannot_determine(tmp_path):
+    r = run_ptr(tmp_path, Scripted(ptr(paras=(99,))))
+    assert r.verdict == "cannot_determine" and r.attempts == 2 and "99" in r.failure
+
+
+def test_pointer_supported_without_paras_is_rejected_then_fixed(tmp_path):
+    r = run_ptr(tmp_path, Scripted(ptr(paras=()), ptr()))
+    assert r.verdict == "supported" and r.attempts == 2
+
+
+def test_pointer_not_supported_needs_no_paras(tmp_path):
+    r = run_ptr(tmp_path, Scripted(ptr("not_supported", ())))
+    assert r.verdict == "not_supported" and r.evidence == []

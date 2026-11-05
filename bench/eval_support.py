@@ -16,13 +16,14 @@ Results go to logs/support_<model>.json. This is a dev yardstick, not a publishe
 """
 
 import json
+import os
 import statistics
 import sys
 import time
 from pathlib import Path
 
 from pramaan import config
-from pramaan.checks.support import judge_support
+from pramaan.checks.support import judge_support, judge_support_pointer
 
 DATA = Path("bench/data/support_dev.jsonl")
 ACCEPT = {"supported", "partially_supported"}
@@ -36,12 +37,16 @@ def main() -> None:
     items = items[:limit] if limit else items
     model = config.JUDGE_MODEL
     safe_name = model.replace("/", "_").replace(":", "_")
-    cache = Path(f"logs/support_cache_{safe_name}")  # per model, so models never share answers
+    mode = os.environ.get("PRAMAAN_SUPPORT_MODE", "quote")  # quote (copy text) or pointer
+    judge = judge_support_pointer if mode == "pointer" else judge_support
+    suffix = "" if mode == "quote" else f"_{mode}"
+    safe_name += suffix
+    cache = Path(f"logs/support_cache_{safe_name}")  # per model and mode, never shared
 
     rows, start = [], time.perf_counter()
     for item in items:
         t0 = time.perf_counter()
-        result = judge_support(
+        result = judge(
             item["proposition"], [tuple(p) for p in item["paragraphs"]],
             cache_dir=cache, usage_log=Path("logs/llm_usage.jsonl"),
         )
@@ -56,7 +61,7 @@ def main() -> None:
     pos = [r for r in rows if r["kind"] == "positive"]
     neg = [r for r in rows if r["kind"] == "negative"]
     summary = {
-        "model": model, "backend": config.JUDGE_BACKEND, "n_positive": len(pos),
+        "model": model, "mode": mode, "backend": config.JUDGE_BACKEND, "n_positive": len(pos),
         "n_negative": len(neg),
         "positive_accept": sum(r["verdict"] in ACCEPT for r in pos) / max(len(pos), 1),
         "negative_reject": sum(r["verdict"] in SAFE_FOR_NEGATIVE for r in neg) / max(len(neg), 1),

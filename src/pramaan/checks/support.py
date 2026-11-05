@@ -19,7 +19,13 @@ from pydantic import BaseModel, ValidationError
 
 from pramaan.checks.quotes import load_paragraphs, normalise
 from pramaan.llm.client import Backend, complete
-from pramaan.llm.prompts import SUPPORT_SYSTEM, retry_suffix, support_user_prompt
+from pramaan.llm.prompts import (
+    SUPPORT_POINTER_SYSTEM,
+    SUPPORT_SYSTEM,
+    pointer_retry_suffix,
+    retry_suffix,
+    support_user_prompt,
+)
 
 TOP_K = 5
 MAX_PARA_CHARS = 3000  # some "paragraphs" are millions of characters; the judge sees the start only
@@ -165,6 +171,91 @@ def judge_support(
                 attempts=attempt, paragraphs_given=paras, cost_usd=cost, latency_s=latency,
             )
         prompt = base_prompt + retry_suffix(problem)
+    return SupportResult(
+        verdict="cannot_determine",
+        reason="The judge did not return a valid, verifiable answer.",
+        attempts=2, paragraphs_given=paras, cost_usd=cost, latency_s=latency, failure=problem,
+    )
+
+
+class PointerAnswer(BaseModel):
+    """Evidence by pointer: the model names paragraphs, it never copies text."""
+
+    verdict: Verdict
+    paras: list[int] = []
+    reason: str
+
+
+_SENTENCE = re.compile(r"(?<=[.;?!])\s+")
+
+
+def best_sentence(text: str, proposition: str, limit: int = 400) -> str:
+    """The sentence of `text` sharing most topic words with the proposition (real text)."""
+    query = set(_tokens(proposition))
+    sentences = [s.strip() for s in _SENTENCE.split(text) if s.strip()] or [text.strip()]
+    best = max(sentences, key=lambda s: len(query & set(_tokens(s))))
+    return best[:limit]
+
+
+def _check_pointer(answer: PointerAnswer, given: list[tuple[int, str]]) -> str | None:
+    numbers = {n for n, _ in given}
+    if answer.verdict in ("supported", "partially_supported", "contradicted") and not answer.paras:
+        return f"verdict {answer.verdict} needs at least one paragraph number in paras"
+    for n in answer.paras:
+        if n not in numbers:
+            return f"para {n} was not among the paragraphs given"
+    return None
+
+
+def judge_support_pointer(
+    proposition: str,
+    given: list[tuple[int, str]],
+    *,
+    model: str | None = None,
+    backend: Backend | None = None,
+    **client_kw,
+) -> SupportResult:
+    """Like judge_support, but the evidence text is looked up by code from the named paragraphs.
+
+    The model cannot mis-copy a quote because it never writes one. The quote we show is a real
+    sentence of the named paragraph. Same retry rule: one more try, then cannot_determine.
+    """
+    if not given:
+        return SupportResult(
+            verdict="cannot_determine",
+            reason="No paragraph of the judgment shares a topic word with the proposition.",
+            attempts=0,
+        )
+    base_prompt = support_user_prompt(proposition, given)
+    prompt, problem = base_prompt, ""
+    cost = latency = 0.0
+    paras = [n for n, _ in given]
+    text_of = dict(given)
+    for attempt in (1, 2):
+        reply = complete(
+            prompt, SUPPORT_POINTER_SYSTEM, model=model, purpose="support_judge_pointer",
+            backend=backend, **client_kw,
+        )
+        cost += reply.cost_usd
+        latency += reply.latency_s
+        try:
+            start, end = reply.text.find("{"), reply.text.rfind("}")
+            if start == -1 or end <= start:
+                raise ValueError("no JSON object found in the reply")
+            answer = PointerAnswer.model_validate(json.loads(reply.text[start : end + 1]))
+            problem = _check_pointer(answer, given) or ""
+        except (ValueError, ValidationError) as e:
+            problem = f"invalid answer: {str(e)[:120]}"
+        if not problem:
+            evidence = [
+                Evidence(para_no=n, quote=best_sentence(text_of[n], proposition))
+                for n in dict.fromkeys(answer.paras)
+            ]
+            return SupportResult(
+                verdict=answer.verdict, evidence=evidence, reason=answer.reason,
+                attempts=attempt, paragraphs_given=paras, cost_usd=cost, latency_s=latency,
+            )
+        prompt = base_prompt + pointer_retry_suffix(problem)
     return SupportResult(
         verdict="cannot_determine",
         reason="The judge did not return a valid, verifiable answer.",
