@@ -168,3 +168,20 @@ def test_openai_backend_gives_up_on_401(monkeypatch):
     with pytest.raises(RuntimeError, match="401"):
         client.OpenAICompatBackend(url="http://x").create(model="m", system="s", prompt="p",
                                                          max_tokens=5)
+
+
+def test_dotenv_is_read_but_never_overrides(tmp_path, monkeypatch):
+    from pramaan import config
+
+    env = tmp_path / ".env"
+    env.write_text("# c\nPRAMAAN_T_A=1\nPRAMAAN_T_B='two'\nbad line\nPRAMAAN_T_C=keep\n")
+    monkeypatch.setenv("PRAMAAN_T_C", "already")
+    monkeypatch.delenv("PRAMAAN_T_A", raising=False)
+    monkeypatch.delenv("PRAMAAN_T_B", raising=False)
+    config._load_dotenv(env)
+    import os
+
+    assert (os.environ["PRAMAAN_T_A"], os.environ["PRAMAAN_T_B"]) == ("1", "two")
+    assert os.environ["PRAMAAN_T_C"] == "already"
+    for k in ("PRAMAAN_T_A", "PRAMAAN_T_B"):
+        monkeypatch.delenv(k, raising=False)
