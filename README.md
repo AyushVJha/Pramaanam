@@ -61,6 +61,7 @@ result is frozen). The AI reading check has **not** been measured on the harder 
 | 300 whole real judgments fed in as drafts | `scripts/stress_real_text.py 300` | 4,348 mentions; 1,178 VERIFIED; 10 accusations (8 MISQUOTE, 2 NAME_MISMATCH); the 8 MISQUOTEs read by hand are scan noise in the citing text |
 | Local AI judge (qwen3:8b), 39 noisy items, model copies quotes | `bench/eval_support.py` | 0 of 15 negatives called supported; 41.7% of positives accepted; 20.5% gave no valid answer; median 45 s per item |
 | Same items, model names paragraphs and code looks up the quote (`PRAMAAN_SUPPORT_MODE=pointer`) | `bench/eval_support.py` | 1 of 15 negatives called partially supported; 79.2% of positives accepted; 2.6% gave no valid answer; median 61 s per item. One run, small and noisy set, local model |
+| Plain LLM as a baseline: "is this quote accurate?" from memory, same 120 dev items (20 per kind) | `bench/eval_baseline_llm.py` | `gemini-3.1-flash-lite` accepted 35 of 100 altered or invented quotes (number changes: 14 of 20) and rejected 3 of 20 real ones; Pramaan VERIFIED 0 of 100 and 20 of 20 real. One run, one small free model, first 20 per kind, AI check off for Pramaan; a stronger model may do better |
 | Reading agent vs single-shot on benchmark v2 (hard negatives) | `bench/eval_support_v2.py` | **not measured** (the free tier was too unreliable during the attempt) |
 
 The benchmarks use synthetic alterations of real quotes and citations printed in real judgments, so
