@@ -91,3 +91,7 @@ parallel agent runs; a trace viewer in the web page.
 
 ## Benchmark v2 result (2026-11-06, dev, gemini-3.1-flash-lite, 12 per kind)
 quote / pointer / agent: negatives called supported 0/24 in all; positives accepted 0% / 16.7% / 0%; gave up on positives 58% / 42% / 25%; median seconds 2.2 / 2.8 / 5.4. The model is cautious: the agent never said supported on a positive. Not yet investigated why (noisy positives vs prompt vs model). Source: logs/v2_*.out and logs/support_v2_*.json. Nothing was tuned on these results.
+
+
+### Update: negative paragraph numbers (2026-11-06)
+The 0% agent result above was my bug: judgments have negative paragraph numbers (front matter), the model read `[para -2]` as a dash and asked for paragraph 2, which did not exist. After the fix (a hint from the tool, one prompt line) the same 12+12+12 dev items gave: negatives called supported 0/24; positives accepted 8/12 (66.7%); gave up 0%; median 4.1 s. The bug was found by reading transcripts of dev items, so this is tuned on dev; test has not been run. Logs: logs/v2_agent*.out.

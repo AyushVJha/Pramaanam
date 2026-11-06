@@ -306,3 +306,10 @@ Each entry: choice, alternative considered, why, trade-off.
 - Choice: use pointer mode as the single-shot judge going forward; keep quote mode in the code for comparison.
 - Why: the old mode threw away a fifth of answers on copying errors, and its zero false-support partly came from those discarded answers.
 - Trade-off: one more false "partially_supported" on 15 negatives (6.7%, very uncertain at this size). It only produces NEEDS_REVIEW, never a tick or an accusation. Benchmark v2 has more and harder negatives to see whether the difference is real.
+
+
+## Negative paragraph numbers in the reading agent (2026-11-06)
+- **Choice:** keep the corpus paragraph numbers as they are (front matter is numbered below zero), and make the tool say "did you mean -2?" when the model asks for 2 and only -2 exists; plus one prompt line.
+- **Alternative:** renumber paragraphs for the model (1..N). Rejected: citations and the evidence pointer must match the numbers stored in the database.
+- **Why:** transcripts showed the model dropping the minus sign, so it could never read the paragraph it had found; agent accuracy on positives went from 0% to 66.7% on dev.
+- **Trade-off:** found and tuned on dev items, so the number is optimistic until test is run once.
