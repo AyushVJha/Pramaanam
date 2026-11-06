@@ -87,3 +87,7 @@ free tier) before running `scripts/queue_support_v2.sh` equivalents.
 ## Not built yet
 Treatment check (G); a gold-paragraph set (pinpoint citations are too rare in dev: 7 of 247 items);
 parallel agent runs; a trace viewer in the web page.
+
+
+## Benchmark v2 result (2026-11-06, dev, gemini-3.1-flash-lite, 12 per kind)
+quote / pointer / agent: negatives called supported 0/24 in all; positives accepted 0% / 16.7% / 0%; gave up on positives 58% / 42% / 25%; median seconds 2.2 / 2.8 / 5.4. The model is cautious: the agent never said supported on a positive. Not yet investigated why (noisy positives vs prompt vs model). Source: logs/v2_*.out and logs/support_v2_*.json. Nothing was tuned on these results.
