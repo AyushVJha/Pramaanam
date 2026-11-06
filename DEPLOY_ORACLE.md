@@ -107,3 +107,8 @@ an idle instance, uptime. Keep the paid VPS option (DEPLOY.md) as the fallback.
   when tested; larger Flash models often answered "high demand".
 - Not measured: accuracy of the agent on the v2 benchmark (the free tier was too unreliable during the run), and
   how the free tier behaves under many simultaneous visitors.
+
+## Update 2026-11-06: negative-paragraph fix deployed
+- `src/` rsynced and `pramaan` restarted (a few seconds of downtime). No database change.
+- Checked from outside: `/health` ok; a correct citation with a true proposition returns VERIFIED with the AI reading `supported`, evidence paragraph -9 (a negative paragraph number, which the old code could not read).
+- Rollback: rsync the previous commit's `src/` and restart.
