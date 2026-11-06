@@ -96,6 +96,14 @@ def test_reader_search_read_and_remember(con):
     assert "No paragraph shares" in r.search(SearchArgs(query="zzz qqq"))
 
 
+def test_a_dropped_minus_sign_gets_a_hint(con):
+    r = JudgmentReader(con, "C1")
+    r.text[-7] = "preamble text"  # unnumbered front matter has negative numbers in the corpus
+    r.order.insert(0, -7)
+    assert "did you mean -7" in r.read_paragraph(ReadArgs(para_no=7))
+    assert "preamble text" in r.read_paragraph(ReadArgs(para_no=-7))
+
+
 def test_finder_tools(con):
     f = CaseFinder(con)
     both = PartyArgs(petitioner="Ramnarayan Lalwani", respondent="State of Bihar")

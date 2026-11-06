@@ -27,7 +27,9 @@ class SearchArgs(BaseModel):
 
 
 class ReadArgs(BaseModel):
-    para_no: int = Field(description="a paragraph number shown by an earlier search")
+    para_no: int = Field(
+        description="a paragraph number exactly as shown by an earlier search; it can be negative"
+    )
 
 
 class JudgmentReader:
@@ -54,7 +56,11 @@ class JudgmentReader:
 
     def read_paragraph(self, args: ReadArgs) -> str:
         if args.para_no not in self.text:
-            return f"There is no paragraph {args.para_no} in this judgment."
+            hint = ""
+            if -args.para_no in self.text:  # the model dropped a minus sign
+                hint = (f" Paragraph numbers can be negative: did you mean {-args.para_no}? "
+                        "Copy the number exactly as shown, minus sign included.")
+            return f"There is no paragraph {args.para_no} in this judgment.{hint}"
         self.shown.add(args.para_no)
         self.read.add(args.para_no)
         i = self.order.index(args.para_no)

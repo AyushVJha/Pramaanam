@@ -93,7 +93,8 @@ Verdicts:
 
 Rules:
 - For supported, partially_supported and contradicted, "paras" must list paragraph numbers that \
-you READ IN FULL with read_paragraph. Give numbers only, never copy text.
+you READ IN FULL with read_paragraph. Give numbers only, never copy text. Paragraph numbers can be \
+negative (for example -2): copy them exactly, minus sign included.
 - For not_supported you must have searched at least once.
 - In "reason", say "the judgment". Never name a case, party or statute that does not appear in the \
 paragraphs you saw, and never describe the judgment from memory.
