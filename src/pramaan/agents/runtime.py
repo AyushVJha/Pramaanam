@@ -15,7 +15,8 @@ Guarantees (each has a test in tests/test_agent_runtime.py):
 - the final answer must validate against the answer model AND pass the caller's `verify` hook,
   which is where evidence quotes are checked against the real text; one correction turn is allowed;
 - tools only receive validated arguments and their output is cut to `max_observation_chars`;
-- the same tool call twice ends the run as "loop";
+- the same tool call twice is warned about once (the model must answer or try something else);
+  a second repeat ends the run as "loop";
 - every step is recorded in `trace`, and model calls go through llm/client.py (cached, logged).
 """
 
@@ -113,6 +114,7 @@ def run_agent(
     out = AgentOutcome(status="invalid")
     log: list[str] = []  # the running transcript the model sees
     seen: set[str] = set()
+    repeat_warned = False
     bad_streak, corrections_left = 0, 1
     started = time.perf_counter()
 
@@ -196,9 +198,15 @@ def run_agent(
         bad_streak = 0
         call_id = f"{tool.name}:{args.model_dump_json()}"
         if call_id in seen:
-            out.status, out.problem = "loop", f"repeated call {call_id}"
-            note("error", out.problem)
-            return out
+            if repeat_warned:
+                out.status, out.problem = "loop", f"repeated call {call_id}"
+                note("error", out.problem)
+                return out
+            repeat_warned = True
+            note("error", f"repeated call {call_id} (warned)")
+            log.append("[observation] You already made this exact call and its result is above. "
+                       "Use what you have: finish now, or call a different tool or argument.")
+            continue
         seen.add(call_id)
         t0 = time.perf_counter()
         try:

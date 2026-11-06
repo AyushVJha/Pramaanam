@@ -96,8 +96,10 @@ def test_step_limit(tmp_path):
     assert out.status == "budget_exhausted" and out.steps == 2
 
 
-def test_same_call_twice_is_a_loop(tmp_path):
-    out = go(tmp_path, Scripted(call(1), call(1)))
+def test_same_call_twice_is_warned_and_a_third_time_is_a_loop(tmp_path):
+    warned = go(tmp_path, Scripted(call(1), call(1), finish()))
+    assert warned.status == "finished"  # the first repeat is only a warning
+    out = go(tmp_path, Scripted(call(1), call(1), call(1)))
     assert out.status == "loop"
 
 
