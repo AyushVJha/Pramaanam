@@ -1,0 +1,14 @@
+name: uptime
+# Pings the live demo every 30 minutes. A failed run emails the repo owner (GitHub's default).
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: /health must answer ok
+        run: |
+          curl --fail --silent --show-error --max-time 30 --retry 3 --retry-delay 10 \
+            https://pramaanam.duckdns.org/health | tee /dev/stderr | grep -q ok
