@@ -28,7 +28,8 @@ from pramaan import config
 from pramaan.agents.support_agent import agent_support
 from pramaan.checks.support import judge_support, judge_support_pointer
 
-DATA = Path("bench/data/support_v2_dev.jsonl")
+SPLIT = os.environ.get("PRAMAAN_SUPPORT_SPLIT", "dev")  # "test" only for the one frozen run
+DATA = Path(f"bench/data/support_v2_{SPLIT}.jsonl")
 ACCEPT = {"supported", "partially_supported"}
 DANGEROUS = {"supported", "partially_supported", "contradicted"}
 
@@ -44,7 +45,8 @@ def main() -> None:
             count[item["kind"]] += 1
             items.append(item)
     safe = model.replace("/", "_").replace(":", "_")
-    cache = Path(f"logs/support_v2_cache_{mode}_{safe}")
+    cache = Path(f"logs/support_v2_{SPLIT}_cache_{mode}_{safe}" if SPLIT != "dev"
+                 else f"logs/support_v2_cache_{mode}_{safe}")
     usage = Path("logs/llm_usage.jsonl")
     con = sqlite3.connect("file:pramaan.db?mode=ro", uri=True) if mode == "agent" else None
 
@@ -79,7 +81,8 @@ def main() -> None:
     summary["mean_steps"] = round(statistics.mean(r["steps"] for r in rows), 2)
     summary["total_cost_usd"] = round(sum(r["cost"] for r in rows), 4)
     summary["total_seconds"] = round(time.perf_counter() - start, 1)
-    out = Path(f"logs/support_v2_{mode}_{safe}.json")
+    out = Path(f"logs/support_v2_{SPLIT}_{mode}_{safe}.json" if SPLIT != "dev"
+               else f"logs/support_v2_{mode}_{safe}.json")
     out.write_text(json.dumps({"summary": summary, "rows": rows}))
     print(json.dumps(summary, indent=2))
 

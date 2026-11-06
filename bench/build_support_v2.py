@@ -11,8 +11,8 @@ the same thing), so read "supported" on these as a warning sign, not proof of an
   easy_negative the sentence paired with an unrelated case (as in v1)
   hard_negative a sentence cited to another case, paired with B, picked for maximum word overlap
 
-Only the dev split of the resolver benchmark is read. Test is built later, once, after freezing.
-Usage: uv run python bench/build_support_v2.py [--n 20]
+Dev is built by default. The test file (--split test) is built once, after the dev result is frozen.
+Usage: uv run python bench/build_support_v2.py [--n 40] [--split dev|test]
 """
 
 import argparse
@@ -21,12 +21,11 @@ import re
 import sqlite3
 from pathlib import Path
 
-from build_support_dev import MAX_PER_CASE, MIN_YEAR_GAP, SRC, _h, looks_like_a_proposition
+from build_support_dev import MAX_PER_CASE, MIN_YEAR_GAP, _h, looks_like_a_proposition
 
 from pramaan.checks.quotes import load_paragraphs
 from pramaan.checks.support import _tokens, rank_paragraphs
 
-OUT = Path("bench/data/support_v2_dev.jsonl")
 MIN_CONTEXT_CHARS = 200
 MIN_OVERLAP = 0.35  # share of the proposition's topic words that the case text must contain
 MAX_PROPOSITION_CHARS = 700
@@ -50,11 +49,15 @@ def overlap(proposition: str, case_vocab: set[str]) -> float:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=20)
-    n = parser.parse_args().n
+    parser.add_argument("--n", type=int, default=40)
+    parser.add_argument("--split", choices=["dev", "test"], default="dev")
+    args = parser.parse_args()
+    n, split = args.n, args.split
+    src = Path(f"bench/data/resolve_{split}.jsonl")
+    out = Path(f"bench/data/support_v2_{split}.jsonl")
     con = sqlite3.connect("file:pramaan.db?mode=ro", uri=True)
-    rows = [json.loads(line) for line in SRC.read_text().splitlines()]
-    assert all(r["split"] == "dev" for r in rows), "this script must only read the dev split"
+    rows = [json.loads(line) for line in src.read_text().splitlines()]
+    assert all(r["split"] == split for r in rows), f"{src} must hold only the {split} split"
     rows = [r for r in rows if r["gold_kind"] == "in_corpus"
             and len(r["context"]) >= MIN_CONTEXT_CHARS and looks_like_a_proposition(r["context"])
             and is_clean(r["context"])]
@@ -101,10 +104,10 @@ def main() -> None:
             item = _item(r, "hard_negative", case_b, s["context"], paras_b)
             item["item_id"] = f"{r['item_id']}-hard-{s['item_id']}"
             items.append(item)
-    OUT.write_text("\n".join(json.dumps(i, ensure_ascii=False) for i in items) + "\n")
+    out.write_text("\n".join(json.dumps(i, ensure_ascii=False) for i in items) + "\n")
     from collections import Counter
 
-    print(f"wrote {len(items)} items to {OUT}:", dict(Counter(i["kind"] for i in items)))
+    print(f"wrote {len(items)} items to {out}:", dict(Counter(i["kind"] for i in items)))
 
 
 def _item(r, kind, case_id, proposition, paras) -> dict:
