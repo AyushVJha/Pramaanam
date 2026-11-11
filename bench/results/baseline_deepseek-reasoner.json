@@ -10,23 +10,31 @@
   },
   "llm": {
     "real": {
-      "no_answer": 20
+      "accurate": 8,
+      "inaccurate": 10,
+      "no_answer": 2
     },
     "one_word": {
-      "no_answer": 20
+      "inaccurate": 19,
+      "no_answer": 1
     },
     "negation": {
-      "no_answer": 20
+      "inaccurate": 17,
+      "accurate": 2,
+      "no_answer": 1
     },
     "number": {
-      "no_answer": 20
+      "accurate": 3,
+      "inaccurate": 14,
+      "no_answer": 3
     },
     "splice": {
-      "no_answer": 20
+      "inaccurate": 18,
+      "accurate": 2
     },
     "invented": {
-      "no_answer": 19,
-      "inaccurate": 1
+      "inaccurate": 16,
+      "no_answer": 4
     }
   },
   "pramaan_verified": {
@@ -38,12 +46,12 @@
     "invented": 0
   },
   "altered_accepted": {
-    "llm": 0,
+    "llm": 7,
     "pramaan": 0,
     "of": 100
   },
   "real_accepted": {
-    "llm": 0,
+    "llm": 8,
     "pramaan": 20,
     "of": 20
   }

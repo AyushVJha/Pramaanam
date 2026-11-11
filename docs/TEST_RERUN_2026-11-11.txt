@@ -1,0 +1,30 @@
+# Re-run of the held-out test split after later changes (2026-11-11)
+
+Same items, same thresholds, current code (Suppl. fix, alias rebuild, later-treatment flags, agent changes). AI check off.
+
+## bench/eval_resolve.py --split test
+threshold 0.85   items 667
+format           n       correct    wrong_case        missed     ambiguous  correct_none   false_match
+AIR            195           182             0            13             0             0             0
+SCC            457           447             3             7             0             0             0
+SCC_ONLINE      15            12             0             3             0             0             0
+
+in-corpus items: 667  correct 641 (96.1%)  wrong case 3 (0.4%)
+(8 items with an unmatched anchor number are not scored)
+
+## bench/eval_pipeline_quotes.py --split test
+split test: 1991 scored, 0 skipped
+
+invented                   MISQUOTE 275
+negation                   NEEDS_REVIEW 225, VERIFIED 1
+number                     NEEDS_REVIEW 117
+one_word                   LOW_FIDELITY_SOURCE 1, NEEDS_REVIEW 273
+real                       NEEDS_REVIEW 3, VERIFIED 272
+real_wrong_para_adjacent   NEEDS_REVIEW 3, VERIFIED 272
+real_wrong_para_far        NEEDS_REVIEW 1, VERIFIED 116, WRONG_PARAGRAPH 158
+splice                     MISQUOTE 271, NEEDS_REVIEW 3
+
+ALTERED/INVENTED QUOTES VERIFIED: 1
+   ('negation', 'As regards the first part, the scope of reference is, to find out from the repor')
+
+The 3 real quotes that are NEEDS_REVIEW instead of VERIFIED are cases a later judgment's headnote marks per incuriam / overruled (Dashrath Rupsingh Rathod 2014; Vidya Drolia 2020; PASL Wind Solutions 2021): the quote is still word-for-word.

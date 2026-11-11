@@ -80,6 +80,14 @@ Output kept in `docs/TEST_RUN_2026-11-05.txt`. Thresholds were fixed on dev befo
 
 The 2 "altered quotes VERIFIED" and the 1 "wrong case" were read by hand and are recorded in DATA_NOTES section 33. They are reported here as the benchmark counts them; no label or code was changed to fix them.
 
+### Test split re-run on the current code (2026-11-11)
+
+Same held-out items and thresholds, AI check off; output in `docs/TEST_RERUN_2026-11-11.txt`. Compared with the
+run of 2026-11-05: right case 641 of 667 (96.1%, was 95.8%), wrong case 3 (unchanged); real quotes 272 of 275
+VERIFIED, the other 3 are NEEDS_REVIEW because a later judgment's headnote marks the case overruled or
+per incuriam (the quote itself is still verbatim); altered or invented quotes VERIFIED: 1 of 1,166 (was 2). The
+1 remaining is a negation that the checker accepts as verbatim; it is not hidden.
+
 ### AI support check, benchmark v2 test split (run once, 2026-11-11)
 
 `gemini-3.1-flash-lite`, 78 items (40 positives, 16 easy and 22 hard negatives), settings fixed on dev
