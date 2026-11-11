@@ -51,13 +51,13 @@ def make_backend(provider: str):
     )
 
 
-def ask(name: str, raw: str, quote: str, model: str, backend=None) -> str:
+def ask(name: str, raw: str, quote: str, model: str, backend=None, max_tokens: int = 100) -> str:
     prompt = (
         f"The draft says: in {name}, {raw}, the Supreme Court of India wrote:\n"
         f'"{quote}"\n\nIs this quotation accurate, word for word, as it appears in that judgment?'
     )
     try:
-        text = complete(prompt, SYSTEM, model=model, purpose="baseline", max_tokens=100,
+        text = complete(prompt, SYSTEM, model=model, purpose="baseline", max_tokens=max_tokens,
                         backend=backend).text
         v = Verdict.model_validate_json(text[text.index("{") : text.rindex("}") + 1]).verdict
     except (RuntimeError, ValueError, ValidationError):
@@ -69,6 +69,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=20)
     ap.add_argument("--model", default=JUDGE_MODEL)
+    ap.add_argument("--max-tokens", type=int, default=100,
+                    help="raise for models that think before answering")
     ap.add_argument("--provider", choices=["default", "deepseek"], default="default")
     args = ap.parse_args()
     n, model = args.n, args.model
@@ -91,7 +93,7 @@ def main() -> None:
         raw, parsed = own
         title = con.execute("SELECT title FROM cases WHERE cnr = ?", (it["case_id"],)).fetchone()[0]
         name = title.replace(" versus ", " v. ")
-        llm[k][ask(name, raw, it["quote"], model, backend)] += 1
+        llm[k][ask(name, raw, it["quote"], model, backend, args.max_tokens)] += 1
         cit = Citation(raw=raw, span=(0, 0), format=parsed.reporter, parsed=parsed, case_name=name,
                        proposition="", quoted_text=it["quote"], para_ref=it["cited_para"])
         pra[k][check_citation(con, cit, use_llm=False).status] += 1

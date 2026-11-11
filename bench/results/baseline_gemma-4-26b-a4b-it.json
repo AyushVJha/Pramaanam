@@ -1,0 +1,49 @@
+{
+  "model": "gemma-4-26b-a4b-it",
+  "items_per_kind": {
+    "real": 20,
+    "one_word": 20,
+    "splice": 20,
+    "invented": 20,
+    "negation": 20,
+    "number": 20
+  },
+  "llm": {
+    "real": {
+      "no_answer": 20
+    },
+    "one_word": {
+      "no_answer": 20
+    },
+    "negation": {
+      "no_answer": 20
+    },
+    "number": {
+      "no_answer": 20
+    },
+    "splice": {
+      "no_answer": 20
+    },
+    "invented": {
+      "no_answer": 20
+    }
+  },
+  "pramaan_verified": {
+    "real": 20,
+    "one_word": 0,
+    "negation": 0,
+    "number": 0,
+    "splice": 0,
+    "invented": 0
+  },
+  "altered_accepted": {
+    "llm": 0,
+    "pramaan": 0,
+    "of": 100
+  },
+  "real_accepted": {
+    "llm": 0,
+    "pramaan": 20,
+    "of": 20
+  }
+}

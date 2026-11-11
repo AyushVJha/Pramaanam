@@ -1,0 +1,55 @@
+{
+  "model": "gemini-3.1-flash-lite",
+  "items_per_kind": {
+    "real": 20,
+    "one_word": 20,
+    "splice": 20,
+    "invented": 20,
+    "negation": 20,
+    "number": 20
+  },
+  "llm": {
+    "real": {
+      "accurate": 17,
+      "inaccurate": 3
+    },
+    "one_word": {
+      "inaccurate": 16,
+      "accurate": 4
+    },
+    "negation": {
+      "accurate": 7,
+      "inaccurate": 13
+    },
+    "number": {
+      "accurate": 14,
+      "inaccurate": 6
+    },
+    "splice": {
+      "accurate": 4,
+      "inaccurate": 16
+    },
+    "invented": {
+      "inaccurate": 14,
+      "accurate": 6
+    }
+  },
+  "pramaan_verified": {
+    "real": 20,
+    "one_word": 0,
+    "negation": 0,
+    "number": 0,
+    "splice": 0,
+    "invented": 0
+  },
+  "altered_accepted": {
+    "llm": 35,
+    "pramaan": 0,
+    "of": 100
+  },
+  "real_accepted": {
+    "llm": 17,
+    "pramaan": 20,
+    "of": 20
+  }
+}

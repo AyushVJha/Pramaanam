@@ -1,0 +1,58 @@
+{
+  "model": "deepseek-chat",
+  "items_per_kind": {
+    "real": 20,
+    "one_word": 20,
+    "splice": 20,
+    "invented": 20,
+    "negation": 20,
+    "number": 20
+  },
+  "llm": {
+    "real": {
+      "unsure": 14,
+      "accurate": 2,
+      "inaccurate": 4
+    },
+    "one_word": {
+      "inaccurate": 17,
+      "unsure": 3
+    },
+    "negation": {
+      "inaccurate": 6,
+      "unsure": 14
+    },
+    "number": {
+      "accurate": 4,
+      "unsure": 11,
+      "inaccurate": 5
+    },
+    "splice": {
+      "inaccurate": 15,
+      "unsure": 5
+    },
+    "invented": {
+      "inaccurate": 13,
+      "unsure": 6,
+      "accurate": 1
+    }
+  },
+  "pramaan_verified": {
+    "real": 20,
+    "one_word": 0,
+    "negation": 0,
+    "number": 0,
+    "splice": 0,
+    "invented": 0
+  },
+  "altered_accepted": {
+    "llm": 5,
+    "pramaan": 0,
+    "of": 100
+  },
+  "real_accepted": {
+    "llm": 2,
+    "pramaan": 20,
+    "of": 20
+  }
+}
