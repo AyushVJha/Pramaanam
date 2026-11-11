@@ -144,12 +144,13 @@ class OpenAICompatBackend:
     """Any server speaking the OpenAI chat API (llama.cpp server, vLLM). Standard library only."""
 
     def __init__(
-        self, url: str | None = None, api_key: str | None = None, timeout: float = 900.0
+        self, url: str | None = None, api_key: str | None = None, timeout: float = 900.0,
+        path: str | None = None,
     ) -> None:
         base = (url or config.OPENAI_URL).rstrip("/")
         if not base:
             raise RuntimeError("Set PRAMAAN_OPENAI_URL (for example http://127.0.0.1:8080).")
-        self._url = base + config.OPENAI_PATH
+        self._url = base + (path if path is not None else config.OPENAI_PATH)
         self._key = api_key if api_key is not None else config.OPENAI_API_KEY
         self._timeout = timeout
 

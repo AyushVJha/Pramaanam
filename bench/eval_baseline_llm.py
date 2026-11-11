@@ -7,12 +7,14 @@ Pramaan runs on the very same items with the AI check off. We count, per kind of
 The number that matters is how many altered or invented quotes each one accepts.
 
 Items: the first N of each kind from bench/data/quotes_dev.jsonl (fixed order, no random choice).
-Usage: uv run python bench/eval_baseline_llm.py [--n 12]   (uses the .env model, free tier is fine)
+Usage: uv run python bench/eval_baseline_llm.py [--n 20] [--model gemma-4-31b-it]
+(uses the .env endpoint; --model overrides the model; a JSON result goes to bench/results/)
 """
 
 import argparse
 import json
 import logging
+import os
 import sqlite3
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -22,7 +24,7 @@ from pydantic import BaseModel, ValidationError
 
 from pramaan.citations.extract import Citation
 from pramaan.config import JUDGE_MODEL
-from pramaan.llm.client import complete
+from pramaan.llm.client import OpenAICompatBackend, complete
 from pramaan.pipeline import check_citation
 
 logging.basicConfig(level=logging.WARNING)
@@ -37,13 +39,26 @@ class Verdict(BaseModel):
     verdict: str
 
 
-def ask(name: str, raw: str, quote: str) -> str:
+def make_backend(provider: str):
+    """None means the endpoint in .env. DeepSeek needs PRAMAAN_DEEPSEEK_API_KEY (.env only)."""
+    if provider == "default":
+        return None
+    key = os.environ.get("PRAMAAN_DEEPSEEK_API_KEY", "")
+    if not key:
+        raise SystemExit("Set PRAMAAN_DEEPSEEK_API_KEY in .env first.")
+    return OpenAICompatBackend(
+        "https://api.deepseek.com", key, timeout=120.0, path="/chat/completions"
+    )
+
+
+def ask(name: str, raw: str, quote: str, model: str, backend=None) -> str:
     prompt = (
         f"The draft says: in {name}, {raw}, the Supreme Court of India wrote:\n"
         f'"{quote}"\n\nIs this quotation accurate, word for word, as it appears in that judgment?'
     )
     try:
-        text = complete(prompt, SYSTEM, purpose="baseline", max_tokens=100).text
+        text = complete(prompt, SYSTEM, model=model, purpose="baseline", max_tokens=100,
+                        backend=backend).text
         v = Verdict.model_validate_json(text[text.index("{") : text.rindex("}") + 1]).verdict
     except (RuntimeError, ValueError, ValidationError):
         return "no_answer"
@@ -52,8 +67,12 @@ def ask(name: str, raw: str, quote: str) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--n", type=int, default=12)
-    n = ap.parse_args().n
+    ap.add_argument("--n", type=int, default=20)
+    ap.add_argument("--model", default=JUDGE_MODEL)
+    ap.add_argument("--provider", choices=["default", "deepseek"], default="default")
+    args = ap.parse_args()
+    n, model = args.n, args.model
+    backend = make_backend(args.provider)
     lines = Path("bench/data/quotes_dev.jsonl").read_text().splitlines()
     rows = [json.loads(x) for x in lines if x]
     assert all(r["split"] == "dev" for r in rows), "dev only"
@@ -72,11 +91,11 @@ def main() -> None:
         raw, parsed = own
         title = con.execute("SELECT title FROM cases WHERE cnr = ?", (it["case_id"],)).fetchone()[0]
         name = title.replace(" versus ", " v. ")
-        llm[k][ask(name, raw, it["quote"])] += 1
+        llm[k][ask(name, raw, it["quote"], model, backend)] += 1
         cit = Citation(raw=raw, span=(0, 0), format=parsed.reporter, parsed=parsed, case_name=name,
                        proposition="", quoted_text=it["quote"], para_ref=it["cited_para"])
         pra[k][check_citation(con, cit, use_llm=False).status] += 1
-    print(f"model: {JUDGE_MODEL}   items per kind: {dict(taken)}\n")
+    print(f"model: {model}   items per kind: {dict(taken)}\n")
     print(f"{'kind':10} {'plain LLM says accurate':26} {'Pramaan VERIFIED'}")
     for k in KINDS:
         t = taken[k]
@@ -87,6 +106,18 @@ def main() -> None:
     total = sum(taken[k] for k in KINDS if k in ALTERED)
     print(f"\naltered/invented quotes accepted: plain LLM {bad_llm}/{total}, "
           f"Pramaan {bad_pra}/{total}")
+    result = {
+        "model": model, "items_per_kind": dict(taken),
+        "llm": {k: dict(llm[k]) for k in KINDS},
+        "pramaan_verified": {k: pra[k]["VERIFIED"] for k in KINDS},
+        "altered_accepted": {"llm": bad_llm, "pramaan": bad_pra, "of": total},
+        "real_accepted": {"llm": llm["real"]["accurate"], "pramaan": pra["real"]["VERIFIED"],
+                          "of": taken["real"]},
+    }
+    out = Path("bench/results")
+    out.mkdir(exist_ok=True)
+    safe = model.replace("/", "_").replace(":", "_")
+    (out / f"baseline_{safe}.json").write_text(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":
