@@ -313,3 +313,10 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** renumber paragraphs for the model (1..N). Rejected: citations and the evidence pointer must match the numbers stored in the database.
 - **Why:** transcripts showed the model dropping the minus sign, so it could never read the paragraph it had found; agent accuracy on positives went from 0% to 66.7% on dev.
 - **Trade-off:** found and tuned on dev items, so the number is optimistic until test is run once.
+
+
+## MCP server as an optional extra (2026-11-11)
+- **Choice:** `src/pramaan/mcp_server.py` using the official `mcp` SDK (2.x, `MCPServer`), installed only with `uv sync --extra mcp`; deterministic checks only.
+- **Alternative:** a public HTTP API with keys. Rejected for now: needs hosting, abuse limits and a privacy policy; stdio runs on the user's own machine with their own database.
+- **Why:** it lets any assistant verify a citation before stating it, at zero cost, and the server on the 1 GB VM does not gain a dependency.
+- **Trade-off:** the user needs the 2 GB database locally. `mcp` 2.x renamed FastMCP, so the version is a moving target (pinned by uv.lock).

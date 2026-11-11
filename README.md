@@ -98,6 +98,23 @@ make demo                                                # web page at http://12
 Drafts can be .txt, .md, .docx (footnotes included) or a PDF with a text layer. The full corpus
 (38,397 judgments) needs `make db` and about 2 GB. Local mode makes no network call.
 
+## Use it from another AI assistant (MCP)
+
+Pramaan also runs as an [MCP](https://modelcontextprotocol.io) server, so an assistant such as Claude
+Desktop or Cursor can check a citation before it states it. Only the deterministic checks run: no model
+call, no network, no cost. It needs the full database (`make db`).
+
+```
+uv sync --extra mcp
+# add to the assistant's MCP config:
+{"mcpServers": {"pramaan": {"command": "uv",
+  "args": ["run", "--extra", "mcp", "python", "-m", "pramaan.mcp_server"],
+  "cwd": "/path/to/Pramaan"}}}
+```
+
+Tools: `verify_citations(text)` and `verify_quote(case_name, citation, quote)`. They return the same
+statuses as the web page. Tested over a real stdio session; not yet tried inside Claude Desktop or Cursor.
+
 ## Limits you should know
 
 - **Coverage.** The dataset holds Supreme Court judgments only, and SCC/AIR numbers resolve only when
