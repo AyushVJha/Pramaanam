@@ -121,6 +121,10 @@ make demo                                                # web page at http://12
 Drafts can be .txt, .md, .docx (footnotes included) or a PDF with a text layer. The full corpus
 (38,397 judgments) needs `make db` and about 2 GB. Local mode makes no network call.
 
+## Real reported fabrications (6 items)
+
+Courts have named a few fabricated citations in public orders. [docs/REAL_FAKES.md](docs/REAL_FAKES.md) runs the checker (AI off) on six of them: none of the 5 reported-non-existent citations was marked VERIFIED, and none was called "fake" (NOT_FOUND_IN_CORPUS). One invented paragraph pinpoint on a real case was **not** caught, which is a known gap. Six items is a sanity check, not a rate.
+
 ## Model leaderboard
 
 Plain LLMs asked whether a quote is accurate, against Pramaan with no AI, on the same dev items: see [docs/LEADERBOARD.md](docs/LEADERBOARD.md). It is rebuilt from `bench/results/baseline_*.json` by `bench/make_leaderboard.py`.

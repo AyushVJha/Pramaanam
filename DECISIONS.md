@@ -320,3 +320,10 @@ Each entry: choice, alternative considered, why, trade-off.
 - **Alternative:** a public HTTP API with keys. Rejected for now: needs hosting, abuse limits and a privacy policy; stdio runs on the user's own machine with their own database.
 - **Why:** it lets any assistant verify a citation before stating it, at zero cost, and the server on the 1 GB VM does not gain a dependency.
 - **Trade-off:** the user needs the 2 GB database locally. `mcp` 2.x renamed FastMCP, so the version is a moving target (pinned by uv.lock).
+
+
+## Real reported fabrications: labels exactly as strong as the source (2026-11-12)
+- **Choice:** `bench/real_fakes/items.jsonl` holds only citations that a public court order or a named press report identifies, with the source URL and what it says. Labels are kept at the level the source states (the Supreme Court order calls a set of four decisions fake; it does not rule on each).
+- **Alternative:** label all four as "fake" for a cleaner headline; or include the six Pooja Ramesh Singh citations from one press summary. Rejected: the two summaries I found disagree on names, so including them would risk adding invented data.
+- **Why:** a checker that says "not found" is measured against "not marked VERIFIED", which holds whichever of the four is truly absent.
+- **Trade-off:** 6 items, no rates, and the headline is weak on purpose. The set also exposed a gap (bare paragraph pinpoints are not checked) that is recorded rather than patched with an unreliable rule.
