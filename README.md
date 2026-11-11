@@ -62,7 +62,7 @@ result is frozen). The AI reading check has **not** been measured on the harder 
 | Local AI judge (qwen3:8b), 39 noisy items, model copies quotes | `bench/eval_support.py` | 0 of 15 negatives called supported; 41.7% of positives accepted; 20.5% gave no valid answer; median 45 s per item |
 | Same items, model names paragraphs and code looks up the quote (`PRAMAAN_SUPPORT_MODE=pointer`) | `bench/eval_support.py` | 1 of 15 negatives called partially supported; 79.2% of positives accepted; 2.6% gave no valid answer; median 61 s per item. One run, small and noisy set, local model |
 | Plain LLM as a baseline: "is this quote accurate?" from memory, same 120 dev items (20 per kind) | `bench/eval_baseline_llm.py` | `gemini-3.1-flash-lite` accepted 35 of 100 altered or invented quotes (number changes: 14 of 20) and rejected 3 of 20 real ones; Pramaan VERIFIED 0 of 100 and 20 of 20 real. One run, one small free model, first 20 per kind, AI check off for Pramaan; a stronger model may do better |
-| Benchmark v2 (12 per kind: positives, easy and hard negatives), `gemini-3.1-flash-lite`: quote, pointer, agent | `bench/eval_support_v2.py` | **0 of 24 negatives called supported in every mode** (hard negatives included). Positives accepted: quote 0%, pointer 17%, **agent 67%** (gave up 0%). Median seconds 2.2 / 2.8 / 4.1. The agent first scored 0% because of a bug of mine (negative paragraph numbers; see DECISIONS); the fix was found by reading dev transcripts, so 67% is a dev number on 12 noisy positives, not a test result |
+| Benchmark v2 (12 per kind: positives, easy and hard negatives), `gemini-3.1-flash-lite`: quote, pointer, agent | `bench/eval_support_v2.py` | **0 of 24 negatives called supported in every mode** (hard negatives included). Positives accepted: quote 0%, pointer 17%, **agent 67%** (gave up 0%). Median seconds 2.2 / 2.8 / 4.1. The agent first scored 0% because of a bug of mine (negative paragraph numbers; see DECISIONS); the fix was found by reading dev transcripts, so 67% is a dev number on 12 noisy positives; the test-split run is below |
 
 The benchmarks use synthetic alterations of real quotes and citations printed in real judgments, so
 they show the checks behave as designed, not how real lawyers' drafts will fare. Coverage numbers
@@ -79,6 +79,21 @@ Output kept in `docs/TEST_RUN_2026-11-05.txt`. Thresholds were fixed on dev befo
 | Whole pipeline on 1,991 quote items | 275 of 275 real quotes VERIFIED; 2 of 1,166 altered or invented quotes VERIFIED (both explained below); 275 of 275 invented quotes MISQUOTE |
 
 The 2 "altered quotes VERIFIED" and the 1 "wrong case" were read by hand and are recorded in DATA_NOTES section 33. They are reported here as the benchmark counts them; no label or code was changed to fix them.
+
+### AI support check, benchmark v2 test split (run once, 2026-11-11)
+
+`gemini-3.1-flash-lite`, 78 items (40 positives, 16 easy and 22 hard negatives), settings fixed on dev
+beforehand and not changed after. Outputs: `docs/SUPPORT_V2_TEST_*.txt`.
+
+| Mode | Wrong propositions called supported (of 38) | True positives accepted (of 40) | No valid answer on positives | Median seconds |
+|---|---|---|---|---|
+| quote (model copies quotes) | 0 | 7.5% | 80% | 2.5 |
+| pointer (model names paragraphs) | 0 | 27.5% | 55% | 1.7 |
+| **agent (searches, reads, then answers)** | **0** | **75%** | 10% | 4.2 |
+
+The positives are noisy by construction (a sentence that cited a case does not always state what the
+case held), so read 75% as "at least". One run, one small free model; the agent prompt and tools were
+fixed on dev (including the negative-paragraph-number fix) before this run.
 
 ## Try it
 

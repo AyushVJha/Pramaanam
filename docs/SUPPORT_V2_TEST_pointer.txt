@@ -1,0 +1,104 @@
+positi cannot_determine    steps=2 85.2s
+hard_n not_supported       steps=1 39.1s
+positi not_supported       steps=1 1.1s
+positi cannot_determine    steps=2 3.4s
+easy_n not_supported       steps=1 75.6s
+hard_n not_supported       steps=1 1.8s
+positi supported           steps=1 1.4s
+positi supported           steps=1 1.5s
+hard_n not_supported       steps=1 2.2s
+positi not_supported       steps=1 1.4s
+hard_n not_supported       steps=1 1.1s
+positi supported           steps=2 3.0s
+hard_n not_supported       steps=1 1.4s
+positi supported           steps=1 122.7s
+easy_n not_supported       steps=1 6.6s
+hard_n not_supported       steps=1 1.5s
+positi cannot_determine    steps=2 2.7s
+easy_n not_supported       steps=1 1.6s
+hard_n not_supported       steps=1 1.6s
+positi cannot_determine    steps=2 3.9s
+hard_n not_supported       steps=1 1.4s
+positi cannot_determine    steps=2 2.9s
+easy_n not_supported       steps=1 1.6s
+hard_n not_supported       steps=1 1.5s
+positi cannot_determine    steps=2 3.0s
+hard_n not_supported       steps=1 1.2s
+positi not_supported       steps=2 2.5s
+easy_n not_supported       steps=1 6.9s
+hard_n not_supported       steps=1 17.6s
+positi supported           steps=2 22.9s
+positi cannot_determine    steps=2 3.9s
+easy_n not_supported       steps=1 1.7s
+positi supported           steps=1 1.4s
+positi supported           steps=2 3.6s
+hard_n not_supported       steps=1 1.6s
+positi cannot_determine    steps=2 39.9s
+hard_n not_supported       steps=1 2.0s
+positi not_supported       steps=1 1.2s
+easy_n not_supported       steps=1 1.7s
+hard_n not_supported       steps=1 1.3s
+positi cannot_determine    steps=2 0.0s
+easy_n not_supported       steps=1 2.0s
+hard_n not_supported       steps=1 1.4s
+positi cannot_determine    steps=2 3.1s
+hard_n not_supported       steps=1 1.5s
+positi cannot_determine    steps=2 3.1s
+positi supported           steps=1 1.3s
+easy_n not_supported       steps=1 1.4s
+hard_n not_supported       steps=1 1.3s
+positi cannot_determine    steps=2 8.7s
+positi cannot_determine    steps=2 24.5s
+positi supported           steps=1 6.8s
+positi cannot_determine    steps=2 2.9s
+hard_n not_supported       steps=1 1.0s
+positi cannot_determine    steps=2 2.7s
+easy_n not_supported       steps=1 1.5s
+positi cannot_determine    steps=0 0.7s
+easy_n not_supported       steps=1 1.6s
+hard_n not_supported       steps=1 1.5s
+positi cannot_determine    steps=2 0.0s
+positi supported           steps=2 2.8s
+easy_n not_supported       steps=1 1.4s
+positi cannot_determine    steps=2 2.2s
+positi cannot_determine    steps=2 2.5s
+easy_n not_supported       steps=1 38.0s
+positi cannot_determine    steps=2 3.6s
+positi not_supported       steps=1 1.6s
+easy_n not_supported       steps=1 1.4s
+hard_n not_supported       steps=1 1.4s
+positi cannot_determine    steps=2 2.7s
+positi cannot_determine    steps=2 2.6s
+positi supported           steps=2 0.0s
+positi not_supported       steps=1 1.3s
+easy_n not_supported       steps=1 0.0s
+hard_n not_supported       steps=1 1.1s
+positi not_supported       steps=1 1.3s
+easy_n not_supported       steps=1 1.4s
+hard_n not_supported       steps=1 78.5s
+{
+  "mode": "pointer",
+  "model": "gemini-3.1-flash-lite",
+  "backend": "openai",
+  "positive": {
+    "n": 40,
+    "gave_up": 0.55,
+    "accepted": 0.275
+  },
+  "easy_negative": {
+    "n": 16,
+    "gave_up": 0.0,
+    "false_support": 0.0,
+    "safe": 1.0
+  },
+  "hard_negative": {
+    "n": 22,
+    "gave_up": 0.0,
+    "false_support": 0.0,
+    "safe": 1.0
+  },
+  "median_seconds": 1.65,
+  "mean_steps": 1.33,
+  "total_cost_usd": 0.0,
+  "total_seconds": 689.4
+}

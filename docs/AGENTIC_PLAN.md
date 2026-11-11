@@ -95,3 +95,7 @@ quote / pointer / agent: negatives called supported 0/24 in all; positives accep
 
 ### Update: negative paragraph numbers (2026-11-06)
 The 0% agent result above was my bug: judgments have negative paragraph numbers (front matter), the model read `[para -2]` as a dash and asked for paragraph 2, which did not exist. After the fix (a hint from the tool, one prompt line) the same 12+12+12 dev items gave: negatives called supported 0/24; positives accepted 8/12 (66.7%); gave up 0%; median 4.1 s. The bug was found by reading transcripts of dev items, so this is tuned on dev; test has not been run. Logs: logs/v2_agent*.out.
+
+
+### Test split, run once (2026-11-11)
+quote / pointer / agent on 78 test items: negatives called supported 0/38 in all; positives accepted 7.5% / 27.5% / 75%; no valid answer 80% / 55% / 10%; median 2.5 / 1.7 / 4.2 s. Confirms the dev result; no tuning followed.
