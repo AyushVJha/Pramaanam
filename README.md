@@ -121,6 +121,10 @@ make demo                                                # web page at http://12
 Drafts can be .txt, .md, .docx (footnotes included) or a PDF with a text layer. The full corpus
 (38,397 judgments) needs `make db` and about 2 GB. Local mode makes no network call.
 
+## Model leaderboard
+
+Plain LLMs asked whether a quote is accurate, against Pramaan with no AI, on the same dev items: see [docs/LEADERBOARD.md](docs/LEADERBOARD.md). It is rebuilt from `bench/results/baseline_*.json` by `bench/make_leaderboard.py`.
+
 ## Use it from another AI assistant (MCP)
 
 Pramaan also runs as an [MCP](https://modelcontextprotocol.io) server, so an assistant such as Claude
