@@ -11,4 +11,4 @@ jobs:
       - name: /health must answer ok
         run: |
           curl --fail --silent --show-error --max-time 30 --retry 3 --retry-delay 10 \
-            https://pramaanam.duckdns.org/health | tee /dev/stderr | grep -q ok
+            https://pramaanam.ayushvjha.com/health | tee /dev/stderr | grep -q ok
