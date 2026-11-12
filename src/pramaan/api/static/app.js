@@ -524,11 +524,6 @@
     $("#plate").hidden = false;
   });
 
-  /* ---------- email link: assembled here so the address is not in the page source ---------- */
-  document.querySelectorAll("a.mail").forEach((a) => {
-    a.href = `mailto:${a.dataset.u}@${a.dataset.d}?subject=Pramaanam`;
-  });
-
   /* ---------- mobile menu ---------- */
   const menuBtn = $("#menu-btn");
   const nav = $("#nav");

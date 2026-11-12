@@ -6,7 +6,7 @@ appear in it, at the paragraph cited? It reports evidence, never a verdict on th
 [SPEC.md](SPEC.md) for the plan and [docs/CLAIM_CONTRACT.md](docs/CLAIM_CONTRACT.md) for exactly what each
 status promises.
 
-**Live demo: https://pramaanam.duckdns.org/** (free hosting on a 1 GB machine: expect it to be slow at times).
+**Live demo: https://pramaanam.ayushvjha.com/** (also https://pramaanam.duckdns.org/) (free hosting on a 1 GB machine: expect it to be slow at times).
 
 Author: Ayush Vardhan Jha ([LinkedIn](https://www.linkedin.com/in/ayushvjha)). The public site is
 shown as "Pramaanam"; the code, package and repo stay `pramaan`.

@@ -11,14 +11,15 @@
 <meta property="og:site_name" content="Pramaanam">
 <meta property="og:title" content="Pramaanam: every citation, checked against the judgment itself">
 <meta property="og:description" content="Upload a draft. Pramaanam finds each Supreme Court of India citation and checks it against the judgment: that it exists, that the name matches, and that each quotation appears word for word.">
-<meta property="og:url" content="https://pramaanam.duckdns.org/">
-<meta property="og:image" content="https://pramaanam.duckdns.org/static/img/og.jpg">
+<link rel="canonical" href="https://pramaanam.ayushvjha.com/">
+<meta property="og:url" content="https://pramaanam.ayushvjha.com/">
+<meta property="og:image" content="https://pramaanam.ayushvjha.com/static/img/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Pramaanam: every citation, checked against the judgment itself, beside a marked-up page of a draft">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pramaanam: every citation, checked against the judgment itself">
-<meta name="twitter:image" content="https://pramaanam.duckdns.org/static/img/og.jpg">
+<meta name="twitter:image" content="https://pramaanam.ayushvjha.com/static/img/og.jpg">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/static/fonts/newsreader-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/ibm-plex-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -268,15 +269,15 @@
       <h2 id="accuracy-title">Measured on a held-out test set, and published as measured.</h2>
     </div>
     <div class="reveal figures">
-      <div class="figure"><span class="figure__num">95.8<small>%</small></span><span class="figure__label">of SCC and AIR citations matched to the right judgment<sup>1</sup></span></div>
+      <div class="figure"><span class="figure__num">96.1<small>%</small></span><span class="figure__label">of SCC and AIR citations matched to the right judgment<sup>1</sup></span></div>
       <div class="figure"><span class="figure__num">0.4<small>%</small></span><span class="figure__label">matched to a wrong judgment: 3 of 667<sup>1</sup></span></div>
-      <div class="figure"><span class="figure__num">275<small>/275</small></span><span class="figure__label">genuine quotations verified word for word<sup>2</sup></span></div>
+      <div class="figure"><span class="figure__num">272<small>/275</small></span><span class="figure__label">genuine quotations verified word for word; the other 3 sent to review because a later judgment overruled the case<sup>2</sup></span></div>
       <div class="figure"><span class="figure__num">275<small>/275</small></span><span class="figure__label">invented quotations caught as misquotes<sup>2</sup></span></div>
     </div>
     <ol class="footnotes">
-      <li>667 citations printed in real judgments, held out from all tuning and run once, on 5 November 2026.</li>
+      <li>667 citations printed in real judgments, held out from all tuning. First run on 5 November 2026 (95.8%); run again on the same items with the current code on 11 November 2026 (96.1%, 641 of 667). Nothing was tuned on them in between.</li>
       <li>Quotations taken from real judgments, and synthetic alterations of them; not lawyers' drafts.
-        Of 1,166 altered quotations, 2 still passed as verified; both were read by hand and one has since been fixed.
+        Of 1,166 altered quotations, 1 still passed as verified (a quotation with a &ldquo;not&rdquo; added that the checker treats as word for word); it was 2 on 5 November.
         Older scanned judgments carry text errors (about 2% of characters on a 40-page sample transcribed by the project, not human-verified),
         which is why near matches go to review, not to an accusation.</li>
     </ol>
@@ -292,7 +293,7 @@
     </div>
     <div class="reveal clauses">
       <p><b>Not stored.</b> The file is read into a temporary place, checked and deleted. No account, no history, no tracking, no third-party scripts or fonts.</p>
-      <p><b>No AI on your text by default.</b> The checks are exact comparisons against the judgments. An optional AI second opinion exists, is off on this site, and could only ever lower a result.</p>
+      <p><b>No AI on your text by default.</b> The checks are exact comparisons against the judgments. An optional AI reading check is off unless you tick it. If you do, the sentence around up to 4 citations and paragraphs of the matched judgment are sent to Google&rsquo;s Gemini API. It can only add warnings, never a green tick.</p>
       <p><b>What it does not check.</b> Whether the judgment supports your argument; High Court and tribunal cases; short forms such as &ldquo;supra&rdquo; and &ldquo;ibid&rdquo;; headers, footers and text boxes in Word files.</p>
       <p><b>Not legal advice.</b> An automated check of citations, in preview. Verify against an authorised source. A lawyer decides.</p>
     </div>
@@ -316,7 +317,7 @@
       </details>
       <details>
         <summary>Is my draft stored, or used to train anything?</summary>
-        <p>No. The file is read into a temporary place, checked and deleted. There is no account and no history, and nothing is sent to a third party. The optional AI second opinion is switched off on this site.</p>
+        <p>No. The file is read into a temporary place, checked and deleted. There is no account and no history. By default nothing leaves this server. The one exception is the optional &ldquo;AI reading check&rdquo;, which is off unless you tick it: if you do, the sentence around up to 4 citations and paragraphs of the matched judgment are sent to Google&rsquo;s Gemini API (free tier, where Google may use inputs to improve its models). Leave it unticked for anything confidential.</p>
       </details>
       <details>
         <summary>Which citation formats are read?</summary>
@@ -359,7 +360,7 @@
       Have a real draft to try, or a result that looks off? Say hello:
       <a href="https://www.linkedin.com/in/ayushvjha" rel="noopener" target="_blank">LinkedIn</a>
       <span aria-hidden="true">&middot;</span>
-      <a class="mail" href="#footer" data-u="ayushvjha" data-d="gmail.com">Email</a></p>
+      <a class="mail" href="mailto:ayushvjha@gmail.com?subject=Pramaanam">Email</a></p>
   </div>
 </footer>
 
