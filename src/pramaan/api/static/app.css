@@ -64,6 +64,9 @@ i, em { font-style: italic; }
 .skip:focus { left: 12px; }
 
 /* ---------- top bar ---------- */
+.byline { background: var(--night-2); color: var(--on-night-2); font: 400 13px/1 var(--sans); }
+.byline__inner { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 9px 0; }
+.byline a { color: var(--on-night); text-decoration: underline; text-underline-offset: 3px; }
 .topbar { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--night) 88%, transparent); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-bottom: 1px solid transparent; transition: border-color .3s; color: var(--on-night); }
 .topbar.is-scrolled { border-bottom-color: var(--night-3); }
 .topbar__inner { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 20px; }
