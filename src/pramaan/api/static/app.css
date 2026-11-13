@@ -394,3 +394,13 @@ mark.add { background: var(--add-bg); color: var(--add); padding: 0 2px; }
   .results { display: block !important; padding: 0; }
   .cit { break-inside: avoid; animation: none; }
 }
+
+.ai-compare { margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--night-3); max-width: 70em; }
+.ai-compare h3 { font: 400 24px/1.25 var(--serif); color: var(--on-night); margin: 0 0 12px; }
+.ai-compare p { color: var(--on-night-2); font-size: 15px; line-height: 1.6; margin: 0 0 20px; max-width: 46em; }
+.ai-compare__scroll { overflow-x: auto; }
+.ai-compare table { border-collapse: collapse; width: 100%; min-width: 520px; font: 400 15px/1.4 var(--sans); color: var(--on-night); }
+.ai-compare th, .ai-compare td { text-align: left; padding: 12px 16px 12px 0; border-bottom: 1px solid var(--night-3); }
+.ai-compare th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--on-night-3); font-weight: 500; }
+.ai-compare .is-us td { font-weight: 600; }
+.ai-compare .ai-compare__note { font-size: 13.5px; color: var(--on-night-3); margin: 16px 0 0; }

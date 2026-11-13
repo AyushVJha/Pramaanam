@@ -281,6 +281,22 @@
         Older scanned judgments carry text errors (about 2% of characters on a 40-page sample transcribed by the project, not human-verified),
         which is why near matches go to review, not to an accusation.</li>
     </ol>
+    <div class="reveal ai-compare">
+      <h3>How plain AI models do on the same quotations</h3>
+      <p>Each model was asked, from memory and without the judgment, whether a quotation is accurate word for word. 120 development items, 20 of each kind, one run per model. Read both columns: a model can look careful only because it also rejects real quotations.</p>
+      <div class="ai-compare__scroll">
+        <table>
+          <thead><tr><th>Model</th><th>Altered or invented quotations accepted (of 100)</th><th>Real quotations accepted (of 20)</th></tr></thead>
+          <tbody>
+            <tr><td>deepseek-chat</td><td>5</td><td>2</td></tr>
+            <tr><td>deepseek-reasoner<sup>a</sup></td><td>7</td><td>8</td></tr>
+            <tr><td>gemini-3.1-flash-lite</td><td>35</td><td>17</td></tr>
+            <tr class="is-us"><td>Pramaanam (no AI, reads the judgment)</td><td>0</td><td>20</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="ai-compare__note"><sup>a</sup> 109 of 120 answers usable. Other models were tried and left out because fewer than 90% of their answers were usable or the run did not finish. Small sample, one prompt, development items rather than the held-out test set.</p>
+    </div>
   </div>
 </section>
 
